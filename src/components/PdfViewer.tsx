@@ -15,6 +15,19 @@ interface PdfViewerProps {
 }
 
 const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTheme }) => {
+    const getProxiedUrl = (originalUrl: string) => {
+        if (!originalUrl.startsWith('http')) return originalUrl;
+        try {
+            const urlObj = new URL(originalUrl);
+            if (urlObj.hostname === window.location.hostname) return originalUrl;
+            return `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
+        } catch (e) {
+            return originalUrl;
+        }
+    };
+
+    const proxiedUrl = getProxiedUrl(url);
+
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1.0);
@@ -263,7 +276,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
             {/* PDF Container */}
             <div style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', padding: '2rem' }}>
                 <Document
-                    file={url}
+                    file={proxiedUrl}
                     onLoadSuccess={onDocumentLoadSuccess}
                     loading={<div style={{ padding: '2rem' }}>Đang tải tài liệu...</div>}
                     error={<div style={{ color: '#ef4444', padding: '2rem' }}>Không thể tải PDF. Vui lòng kiểm tra lại link hoặc quyền truy cập.</div>}
