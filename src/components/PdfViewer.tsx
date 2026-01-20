@@ -368,7 +368,14 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                         <button onClick={() => { setScale(s => Math.min(2.5, s + 0.1)); setIsFitWidth(false); }} className="btn-secondary" style={{ padding: '6px' }} title="Phóng to"><ZoomIn size={18} /></button>
 
                         <button
-                            onClick={() => setIsFitWidth(!isFitWidth)}
+                            onClick={() => {
+                                const nextFit = !isFitWidth;
+                                setIsFitWidth(nextFit);
+                                if (nextFit) {
+                                    setRotation(0);
+                                    setPagesToShow(1);
+                                }
+                            }}
                             className={`btn-secondary ${isFitWidth ? 'active' : ''}`}
                             style={{ padding: '6px', color: isFitWidth ? '#3b82f6' : 'inherit', background: isFitWidth ? 'rgba(59, 130, 246, 0.1)' : 'transparent' }}
                             title="Tự động giãn ngang"
