@@ -36,7 +36,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [pagesToShow, setPagesToShow] = useState(1);
     const [inputPage, setInputPage] = useState('1');
     const [viewMode, setViewMode] = useState<'paginated' | 'scroll'>('paginated');
-    const [isFitWidth, setIsFitWidth] = useState(false);
+    const [scaleMode, setScaleMode] = useState<'manual' | 'fit-width' | 'fit-page' | 'original'>('manual');
     const [pdfTheme, setPdfTheme] = useState<'light' | 'dark' | 'sepia' | 'night'>('light');
 
     // Search states
@@ -48,33 +48,50 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
     const containerRef = React.useRef<HTMLDivElement>(null);
     const pageOriginalWidthRef = React.useRef<number | null>(null);
+    const pageOriginalHeightRef = React.useRef<number | null>(null);
 
-    const calculateFitWidthScale = useCallback(() => {
-        if (!containerRef.current || !pageOriginalWidthRef.current) return;
+    const calculateAutoScale = useCallback(() => {
+        if (!containerRef.current || !pageOriginalWidthRef.current || !pageOriginalHeightRef.current) return;
+        if (scaleMode === 'manual') return;
 
         const container = containerRef.current;
         const containerWidth = container.clientWidth - 64; // Horizontal padding
+        const containerHeight = container.clientHeight - 32; // Vertical padding
 
-        const newScale = containerWidth / pageOriginalWidthRef.current;
-        setScale(newScale);
-    }, []);
-
-    useEffect(() => {
-        if (isFitWidth) {
-            calculateFitWidthScale();
+        if (scaleMode === 'fit-width') {
+            const newScale = containerWidth / pageOriginalWidthRef.current;
+            setScale(newScale);
+        } else if (scaleMode === 'fit-page') {
+            // Chrome-like Fit to Page: fits the entire page within the viewport
+            // We subtract a bit more for the toolbar/header height (approx 80px)
+            const availableHeight = containerHeight - 100;
+            const scaleW = containerWidth / pageOriginalWidthRef.current;
+            const scaleH = availableHeight / pageOriginalHeightRef.current;
+            setScale(Math.min(scaleW, scaleH));
+        } else if (scaleMode === 'original') {
+            setScale(1.0);
+            setRotation(0);
+            setPagesToShow(1);
+            setScaleMode('manual'); // Reset to manual after applying original
         }
-    }, [isFitWidth, calculateFitWidthScale, pagesToShow, viewMode, numPages]);
+    }, [scaleMode]);
 
     useEffect(() => {
-        if (!isFitWidth) return;
+        if (scaleMode !== 'manual') {
+            calculateAutoScale();
+        }
+    }, [scaleMode, calculateAutoScale, pagesToShow, viewMode, numPages]);
+
+    useEffect(() => {
+        if (scaleMode === 'manual') return;
 
         const handleResize = () => {
-            calculateFitWidthScale();
+            calculateAutoScale();
         };
 
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [isFitWidth, calculateFitWidthScale]);
+    }, [scaleMode, calculateAutoScale]);
 
     const scrollToPage = useCallback((pageNum: number) => {
         if (viewMode === 'scroll' && containerRef.current) {
@@ -168,8 +185,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         setPageNumber(1);
         setInputPage('1');
 
-        if (isFitWidth) {
-            setTimeout(calculateFitWidthScale, 500);
+        if (scaleMode !== 'manual') {
+            setTimeout(calculateAutoScale, 500);
         }
 
         // Extract text from all pages
@@ -184,10 +201,11 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     };
 
     const onPageLoadSuccess = (page: any) => {
-        const { width } = page.getViewport({ scale: 1 });
+        const { width, height } = page.getViewport({ scale: 1 });
         pageOriginalWidthRef.current = width;
-        if (isFitWidth) {
-            calculateFitWidthScale();
+        pageOriginalHeightRef.current = height;
+        if (scaleMode !== 'manual') {
+            calculateAutoScale();
         }
     };
 
@@ -361,24 +379,33 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
 
-                        <button onClick={() => { setScale(s => Math.max(0.5, s - 0.1)); setIsFitWidth(false); }} className="btn-secondary" style={{ padding: '6px' }} title="Thu nhỏ"><ZoomOut size={18} /></button>
+                        <button onClick={() => { setScale(s => Math.max(0.5, s - 0.1)); setScaleMode('manual'); }} className="btn-secondary" style={{ padding: '6px' }} title="Thu nhỏ"><ZoomOut size={18} /></button>
                         <span style={{ minWidth: '70px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600 }}>
                             {isNaN(scale) || !isFinite(scale) ? '100' : Math.round(scale * 100)}%
                         </span>
-                        <button onClick={() => { setScale(s => Math.min(2.5, s + 0.1)); setIsFitWidth(false); }} className="btn-secondary" style={{ padding: '6px' }} title="Phóng to"><ZoomIn size={18} /></button>
+                        <button onClick={() => { setScale(s => Math.min(2.5, s + 0.1)); setScaleMode('manual'); }} className="btn-secondary" style={{ padding: '6px' }} title="Phóng to"><ZoomIn size={18} /></button>
 
                         <button
                             onClick={() => {
-                                const nextFit = !isFitWidth;
-                                setIsFitWidth(nextFit);
-                                if (nextFit) {
-                                    setRotation(0);
-                                    setPagesToShow(1);
+                                if (scaleMode === 'manual' || scaleMode === 'original') {
+                                    setScaleMode('fit-width');
+                                } else if (scaleMode === 'fit-width') {
+                                    setScaleMode('fit-page');
+                                } else if (scaleMode === 'fit-page') {
+                                    setScaleMode('original');
                                 }
                             }}
-                            className={`btn-secondary ${isFitWidth ? 'active' : ''}`}
-                            style={{ padding: '6px', color: isFitWidth ? '#3b82f6' : 'inherit', background: isFitWidth ? 'rgba(59, 130, 246, 0.1)' : 'transparent' }}
-                            title="Tự động giãn ngang"
+                            className={`btn-secondary ${scaleMode !== 'manual' ? 'active' : ''}`}
+                            style={{
+                                padding: '6px',
+                                color: scaleMode !== 'manual' ? '#3b82f6' : 'inherit',
+                                background: scaleMode !== 'manual' ? 'rgba(59, 130, 246, 0.1)' : 'transparent'
+                            }}
+                            title={
+                                scaleMode === 'fit-width' ? "Chuyển sang Vừa trang" :
+                                    scaleMode === 'fit-page' ? "Chuyển sang Gốc" :
+                                        "Tự động giãn (Rộng -> Trang -> Gốc)"
+                            }
                         >
                             <Maximize size={18} />
                         </button>
@@ -406,7 +433,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
 
-                        <button onClick={() => { setRotation(r => (r + 90) % 360); if (isFitWidth) setTimeout(calculateFitWidthScale, 100); }} className="btn-secondary" style={{ padding: '6px' }} title="Xoay trang"><RotateCw size={18} /></button>
+                        <button onClick={() => { setRotation(r => (r + 90) % 360); if (scaleMode !== 'manual') setTimeout(calculateAutoScale, 100); }} className="btn-secondary" style={{ padding: '6px' }} title="Xoay trang"><RotateCw size={18} /></button>
                     </div>
                 </div>
 
