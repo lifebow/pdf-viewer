@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, ArrowLeft, Download, Moon, Sun, Search, X, List, Layout, Maximize, ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, ArrowLeft, Download, Moon, Sun, Search, X, List, Layout, Maximize, ChevronUp, ChevronDown, PanelLeft } from 'lucide-react';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -39,6 +39,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [scaleMode, setScaleMode] = useState<'manual' | 'fit-width' | 'fit-page' | 'original'>('manual');
     const [pdfTheme, setPdfTheme] = useState<'light' | 'dark' | 'sepia' | 'night'>('light');
     const [isToolbarVisible, setIsToolbarVisible] = useState(true);
+    const [showSidebar, setShowSidebar] = useState(window.innerWidth > 768);
 
     // Search states
     const [searchTerm, setSearchTerm] = useState('');
@@ -288,6 +289,10 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
             {isToolbarVisible ? (
                 <nav className="glass pdf-navbar" style={{ margin: '1rem', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <button onClick={() => setShowSidebar(!showSidebar)} className={`btn-secondary ${showSidebar ? 'active' : ''}`} style={{ padding: '6px' }} title="Bật/Tắt thanh bên">
+                            <PanelLeft size={20} />
+                        </button>
+                        <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
                         <button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <ArrowLeft size={18} /> <span className="nav-label">Quay lại</span>
                         </button>
@@ -465,52 +470,82 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                 </button>
             )}
 
-            {/* PDF Container */}
-            <div ref={containerRef} style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+            {/* Main Content Area (Sidebar + PDF) */}
+            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
                 <Document
                     file={proxiedUrl}
                     onLoadSuccess={onDocumentLoadSuccess}
-                    loading={<div style={{ padding: '2rem' }}>Đang tải tài liệu...</div>}
-                    error={<div style={{ color: '#ef4444', padding: '2rem' }}>Không thể tải PDF. Vui lòng kiểm tra lại link hoặc quyền truy cập.</div>}
+                    loading={<div style={{ padding: '2rem', display: 'flex', flex: 1, justifyContent: 'center' }}>Đang tải tài liệu...</div>}
+                    error={<div style={{ color: '#ef4444', padding: '2rem', display: 'flex', flex: 1, justifyContent: 'center' }}>Không thể tải PDF. Vui lòng kiểm tra lại link hoặc quyền truy cập.</div>}
                 >
-                    {viewMode === 'paginated' ? (
-                        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'nowrap' }}>
-                            {Array.from({ length: pagesToShow }).map((_, i) => {
-                                const p = pageNumber + i;
-                                if (p > (numPages || 0)) return null;
-                                return (
-                                    <Page
-                                        key={`${p}-${searchTerm}-${scale}-${rotation}`}
-                                        pageNumber={p}
-                                        scale={scale}
-                                        rotate={rotation}
-                                        className="pdf-page shadow"
-                                        renderAnnotationLayer={true}
-                                        renderTextLayer={true}
-                                        onLoadSuccess={i === 0 ? onPageLoadSuccess : undefined}
-                                        onRenderTextLayerSuccess={i === 0 ? highlightMatches : undefined}
-                                    />
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', height: '100%', width: '100%' }}>
+                        {/* Sidebar Thumbnails */}
+                        <div className={`sidebar-thumbnails ${showSidebar ? 'open' : 'closed'}`}>
                             {Array.from({ length: numPages || 0 }).map((_, i) => (
-                                <div key={i + 1} data-page-number={i + 1} className="pdf-page-wrapper">
-                                    <Page
-                                        pageNumber={i + 1}
-                                        scale={scale}
-                                        rotate={rotation}
-                                        className="pdf-page shadow"
-                                        renderAnnotationLayer={true}
-                                        renderTextLayer={true}
-                                        onLoadSuccess={i === 0 ? onPageLoadSuccess : undefined}
-                                        onRenderTextLayerSuccess={highlightMatches}
-                                    />
+                                <div
+                                    key={`thump-${i + 1}`}
+                                    className={`thumbnail-item ${pageNumber === i + 1 ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setPageNumber(i + 1);
+                                        setInputPage((i + 1).toString());
+                                        if (viewMode === 'scroll') scrollToPage(i + 1);
+                                    }}
+                                >
+                                    <div className="thumbnail-wrapper">
+                                        <Page
+                                            pageNumber={i + 1}
+                                            scale={0.2}
+                                            renderAnnotationLayer={false}
+                                            renderTextLayer={false}
+                                        />
+                                    </div>
+                                    <div className="thumbnail-page-number">{i + 1}</div>
                                 </div>
                             ))}
                         </div>
-                    )}
+
+                        {/* PDF Viewer Container */}
+                        <div ref={containerRef} style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+                            {viewMode === 'paginated' ? (
+                                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'nowrap' }}>
+                                    {Array.from({ length: pagesToShow }).map((_, i) => {
+                                        const p = pageNumber + i;
+                                        if (p > (numPages || 0)) return null;
+                                        return (
+                                            <Page
+                                                key={`${p}-${searchTerm}-${scale}-${rotation}`}
+                                                pageNumber={p}
+                                                scale={scale}
+                                                rotate={rotation}
+                                                className="pdf-page shadow"
+                                                renderAnnotationLayer={true}
+                                                renderTextLayer={true}
+                                                onLoadSuccess={i === 0 ? onPageLoadSuccess : undefined}
+                                                onRenderTextLayerSuccess={i === 0 ? highlightMatches : undefined}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center' }}>
+                                    {Array.from({ length: numPages || 0 }).map((_, i) => (
+                                        <div key={i + 1} data-page-number={i + 1} className="pdf-page-wrapper">
+                                            <Page
+                                                pageNumber={i + 1}
+                                                scale={scale}
+                                                rotate={rotation}
+                                                className="pdf-page shadow"
+                                                renderAnnotationLayer={true}
+                                                renderTextLayer={true}
+                                                onLoadSuccess={i === 0 ? onPageLoadSuccess : undefined}
+                                                onRenderTextLayerSuccess={highlightMatches}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </Document>
             </div>
 
