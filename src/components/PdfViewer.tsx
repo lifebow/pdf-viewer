@@ -47,20 +47,17 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
 
     const containerRef = React.useRef<HTMLDivElement>(null);
+    const pageOriginalWidthRef = React.useRef<number | null>(null);
 
-    const calculateFitWidthScale = useCallback(async () => {
-        if (!containerRef.current || !numPages) return;
+    const calculateFitWidthScale = useCallback(() => {
+        if (!containerRef.current || !pageOriginalWidthRef.current) return;
 
         const container = containerRef.current;
         const containerWidth = container.clientWidth - 64; // Horizontal padding
 
-        const firstPageElement = container.querySelector('.pdf-page canvas, .pdf-page div');
-        if (firstPageElement) {
-            const currentWidth = (firstPageElement as HTMLElement).offsetWidth / scale;
-            const newScale = containerWidth / currentWidth;
-            setScale(newScale);
-        }
-    }, [numPages, scale]);
+        const newScale = containerWidth / pageOriginalWidthRef.current;
+        setScale(newScale);
+    }, []);
 
     useEffect(() => {
         if (isFitWidth) {
@@ -184,6 +181,14 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
             texts.push(pageText.toLowerCase());
         }
         setPagesText(texts);
+    };
+
+    const onPageLoadSuccess = (page: any) => {
+        const { width } = page.getViewport({ scale: 1 });
+        pageOriginalWidthRef.current = width;
+        if (isFitWidth) {
+            calculateFitWidthScale();
+        }
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -365,11 +370,26 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                         <button
                             onClick={() => setIsFitWidth(!isFitWidth)}
                             className={`btn-secondary ${isFitWidth ? 'active' : ''}`}
-                            style={{ padding: '6px', color: isFitWidth ? 'var(--primary)' : 'inherit' }}
+                            style={{ padding: '6px', color: isFitWidth ? '#3b82f6' : 'inherit', background: isFitWidth ? 'rgba(59, 130, 246, 0.1)' : 'transparent' }}
                             title="Tự động giãn ngang"
                         >
                             <Maximize size={18} />
                         </button>
+
+                        <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
+
+                        <select
+                            value={pdfTheme}
+                            onChange={(e) => setPdfTheme(e.target.value as any)}
+                            className="btn-secondary"
+                            style={{ padding: '4px 8px', fontSize: '0.8rem', outline: 'none' }}
+                            title="Màu nền PDF"
+                        >
+                            <option value="light">Trang trắng</option>
+                            <option value="dark">Thông minh (Dark)</option>
+                            <option value="sepia">Sepia (Cổ điển)</option>
+                            <option value="night">Night (Dịu mắt)</option>
+                        </select>
 
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
 
