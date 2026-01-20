@@ -110,7 +110,7 @@ function App() {
 
       <footer style={{ marginTop: 'auto', paddingTop: '4rem', color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <div>© 2026 lifebow - Built with Privacy in Mind</div>
-        <div style={{ opacity: 0.6, fontSize: '0.8rem' }}>Version v{version}</div>t 
+        <div style={{ opacity: 0.6, fontSize: '0.8rem' }}>Version v{version}</div>
       </footer>
     </div>
   );
