@@ -37,6 +37,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [inputPage, setInputPage] = useState('1');
     const [viewMode, setViewMode] = useState<'paginated' | 'scroll'>('paginated');
     const [isFitWidth, setIsFitWidth] = useState(false);
+    const [pdfTheme, setPdfTheme] = useState<'light' | 'dark' | 'sepia' | 'night'>('light');
 
     // Search states
     const [searchTerm, setSearchTerm] = useState('');
@@ -65,7 +66,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         if (isFitWidth) {
             calculateFitWidthScale();
         }
-    }, [isFitWidth, calculateFitWidthScale, pagesToShow, viewMode]);
+    }, [isFitWidth, calculateFitWidthScale, pagesToShow, viewMode, numPages]);
 
     useEffect(() => {
         if (!isFitWidth) return;
@@ -356,7 +357,9 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
 
                         <button onClick={() => { setScale(s => Math.max(0.5, s - 0.1)); setIsFitWidth(false); }} className="btn-secondary" style={{ padding: '6px' }} title="Thu nhỏ"><ZoomOut size={18} /></button>
-                        <span style={{ minWidth: '50px', textAlign: 'center', fontSize: '0.9rem' }}>{Math.round(scale * 100)}%</span>
+                        <span style={{ minWidth: '70px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600 }}>
+                            {isNaN(scale) || !isFinite(scale) ? '100' : Math.round(scale * 100)}%
+                        </span>
                         <button onClick={() => { setScale(s => Math.min(2.5, s + 0.1)); setIsFitWidth(false); }} className="btn-secondary" style={{ padding: '6px' }} title="Phóng to"><ZoomIn size={18} /></button>
 
                         <button
@@ -407,6 +410,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                                         className="pdf-page shadow"
                                         renderAnnotationLayer={true}
                                         renderTextLayer={true}
+                                        onLoadSuccess={i === 0 ? onPageLoadSuccess : undefined}
                                         onRenderTextLayerSuccess={i === 0 ? highlightMatches : undefined}
                                     />
                                 );
@@ -423,6 +427,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                                         className="pdf-page shadow"
                                         renderAnnotationLayer={true}
                                         renderTextLayer={true}
+                                        onLoadSuccess={i === 0 ? onPageLoadSuccess : undefined}
                                         onRenderTextLayerSuccess={highlightMatches}
                                     />
                                 </div>
@@ -438,7 +443,9 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
           border-radius: 4px;
           background: white;
           transition: filter 0.3s ease;
-          ${isDarkMode ? 'filter: invert(1) hue-rotate(180deg);' : ''}
+          ${pdfTheme === 'dark' ? 'filter: invert(1) hue-rotate(180deg);' : ''}
+          ${pdfTheme === 'sepia' ? 'filter: sepia(0.8) brightness(0.9) contrast(1.1);' : ''}
+          ${pdfTheme === 'night' ? 'filter: invert(0.9) hue-rotate(210deg) brightness(0.8);' : ''}
         }
         .shadow {
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
