@@ -38,16 +38,23 @@ Mở file `vite.config.ts` và thêm thông số `base`:
 ```typescript
 export default defineConfig({
   plugins: [react()],
-  base: '/pdf-viewer/', // Tên repository của bạn
+  base: '/', // Phải là '/' nếu dùng custom domain
 })
 ```
 
 ### b. Cập nhật `package.json`
 
-Thêm trường `homepage` (thay `username` bằng tên thật của bạn):
+Thêm trường `homepage`:
 
 ```json
-"homepage": "https://username.github.io/pdf-viewer/",
+"homepage": "https://pdf.lifebow.net",
+```
+
+### c. Thêm file CNAME
+
+Tạo file `public/CNAME` với nội dung:
+```
+pdf.lifebow.net
 ```
 
 ## 3. Thực hiện Deploy
