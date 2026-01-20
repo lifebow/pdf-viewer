@@ -59,11 +59,8 @@ A high-performance, feature-rich PDF viewer built with React, TypeScript, and Vi
    npm run deploy
    ```
 
-## 🌐 Private CORS Proxy
-To ensure reliability, this project uses a dedicated Cloudflare Worker proxy:
-`https://steep-union-ca07.artmoney306.workers.dev/`
+## 🌐 Private CORS Prox
 
-This proxy handles CORS headers specifically for external PDF requests, ensuring seamless access to research papers.
 
 ---
 Created with ❤️ by lifebow.
