@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Link as LinkIcon, ExternalLink, Moon, Sun } from 'lucide-react';
 import PdfViewer from './components/PdfViewer';
+import { version } from '../package.json';
 
 function App() {
   const [url, setUrl] = useState('');
@@ -68,7 +69,7 @@ function App() {
           <FileText size={48} color="#4991e2" />
         </div>
         <h1 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '0.5rem', background: 'linear-gradient(135deg, #4991e2 0%, #357abd 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          SmallPDF View
+          PDF Viewer
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.2rem', maxWidth: '600px' }}>
           Dán link PDF hoặc tải file từ máy tính để bắt đầu xem.
@@ -107,8 +108,9 @@ function App() {
         </div>
       </form>
 
-      <footer style={{ marginTop: 'auto', paddingTop: '4rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-        © 2026 SmallPDF - Built with Privacy in Mind
+      <footer style={{ marginTop: 'auto', paddingTop: '4rem', color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div>© 2026 lifebow - Built with Privacy in Mind</div>
+        <div style={{ opacity: 0.6, fontSize: '0.8rem' }}>Version v{version}</div>
       </footer>
     </div>
   );

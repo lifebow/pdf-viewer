@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# Modern PDF Viewer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A high-performance, feature-rich PDF viewer built with React, TypeScript, and Vite. Designed with a premium glassmorphic UI and advanced reading modes.
 
-Currently, two official plugins are available:
+[Live Demo: pdf.lifebow.net](https://pdf.lifebow.net)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🌟 Key Features
 
-## React Compiler
+### 📖 Reading Experience
+- **Paginated & Scroll Modes**: Switch between discrete page flipping and continuous vertical scrolling.
+- **Multi-page View**: View 1, 2, or 3 pages side-by-side (Book Style).
+- **Custom Background Themes**: Choose from **Light**, **Smart Dark** (inverted), **Sepia**, or **Night** modes.
+- **Smart Dark Mode**: PDF contents automatically adapt to the dark theme while preserving diagram colors.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🛠 Tools & Navigation
+- **Fit to Width (Auto-Scale)**: Smart scaling that automatically fits the PDF to your window width and resets rotation/format.
+- **Search & Highlight**: Dynamic full-text search with match highlighting and navigation.
+- **Go to Page**: Jump directly to any page with instant validation.
+- **Zoom & Rotation**: Smooth zooming (50% - 250%) and 90-degree rotation.
 
-## Expanding the ESLint configuration
+### ☁ Connectivity
+- **Local File Upload**: Effortlessly view local PDFs without uploading them to any server.
+- **External URL Support**: Enter any PDF link to view it instantly.
+- **Private CORS Proxy**: Integrated with a custom Cloudflare Worker to bypass CORS restrictions for external research sites (e.g., IACR, arXiv).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🚀 Technology Stack
+- **Framework**: [React 18+](https://reactjs.org/) with [TypeScript](https://www.typescriptlang.org/)
+- **Bundler**: [Vite](https://vitejs.dev/)
+- **PDF Core**: [react-pdf](https://projects.wojtekmaj.pl/react-pdf/) (pdf.js wrapper)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Styling**: Modern CSS with Glassmorphism and CSS Variables
+- **Deployment**: [GitHub Pages](https://pages.github.com/) with Custom Domain
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🛠 Local Development
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/lifebow/pdf-viewer.git
+   cd pdf-viewer
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+3. **Start the dev server**:
+   ```bash
+   npm run dev
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+4. **Build for production**:
+   ```bash
+   npm run build
+   ```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+5. **Deploy**:
+   ```bash
+   npm run deploy
+   ```
+
+## 🌐 Private CORS Proxy
+To ensure reliability, this project uses a dedicated Cloudflare Worker proxy:
+`https://steep-union-ca07.artmoney306.workers.dev/`
+
+This proxy handles CORS headers specifically for external PDF requests, ensuring seamless access to research papers.
+
+---
+Created with ❤️ by lifebow.
