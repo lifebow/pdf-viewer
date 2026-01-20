@@ -57,8 +57,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         if (scaleMode === 'manual') return;
 
         const container = containerRef.current;
-        const containerWidth = container.clientWidth - 64; // Horizontal padding
-        const containerHeight = container.clientHeight - 32; // Vertical padding
+        const containerWidth = container.clientWidth - 48; // Horizontal padding
+        const containerHeight = container.clientHeight - 48; // Vertical padding
 
         if (scaleMode === 'fit-width') {
             const newScale = containerWidth / pageOriginalWidthRef.current;
@@ -76,7 +76,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
             setPagesToShow(1);
             setScaleMode('manual'); // Reset to manual after applying original
         }
-    }, [scaleMode]);
+    }, [scaleMode, rotation, showSidebar, viewMode, pagesToShow]);
 
     useEffect(() => {
         if (scaleMode !== 'manual') {
@@ -475,8 +475,9 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                 <Document
                     file={proxiedUrl}
                     onLoadSuccess={onDocumentLoadSuccess}
-                    loading={<div style={{ padding: '2rem', display: 'flex', flex: 1, justifyContent: 'center' }}>Đang tải tài liệu...</div>}
-                    error={<div style={{ color: '#ef4444', padding: '2rem', display: 'flex', flex: 1, justifyContent: 'center' }}>Không thể tải PDF. Vui lòng kiểm tra lại link hoặc quyền truy cập.</div>}
+                    loading={<div style={{ padding: '2rem', display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>Đang tải tài liệu...</div>}
+                    error={<div style={{ color: '#ef4444', padding: '2rem', display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>Không thể tải PDF. Vui lòng kiểm tra lại link hoặc quyền truy cập.</div>}
+                    className="pdf-document-root"
                 >
                     <div style={{ display: 'flex', height: '100%', width: '100%' }}>
                         {/* Sidebar Thumbnails */}
@@ -505,9 +506,21 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                         </div>
 
                         {/* PDF Viewer Container */}
-                        <div ref={containerRef} style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+                        <div
+                            ref={containerRef}
+                            style={{
+                                flex: 1,
+                                overflow: 'auto',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: viewMode === 'paginated' ? 'center' : 'flex-start',
+                                padding: '2rem',
+                                background: 'var(--pdf-bg)'
+                            }}
+                        >
                             {viewMode === 'paginated' ? (
-                                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'nowrap' }}>
+                                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'nowrap', justifyContent: 'center', alignItems: 'center', minWidth: 'min-content' }}>
                                     {Array.from({ length: pagesToShow }).map((_, i) => {
                                         const p = pageNumber + i;
                                         if (p > (numPages || 0)) return null;
