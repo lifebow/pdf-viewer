@@ -437,6 +437,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
           box-shadow: 0 10px 30px rgba(0,0,0,0.2);
           border-radius: 4px;
           background: white;
+          transition: filter 0.3s ease;
+          ${isDarkMode ? 'filter: invert(1) hue-rotate(180deg);' : ''}
         }
         .shadow {
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
