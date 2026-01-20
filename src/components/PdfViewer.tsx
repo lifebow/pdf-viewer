@@ -19,6 +19,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1.0);
     const [rotation, setRotation] = useState(0);
+    const [pagesToShow, setPagesToShow] = useState(1);
+    const [inputPage, setInputPage] = useState('1');
 
     // Search states
     const [searchTerm, setSearchTerm] = useState('');
@@ -28,16 +30,30 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
 
     const changePage = useCallback((offset: number) => {
-        setPageNumber(prev => Math.min(Math.max(1, prev + offset), numPages || 1));
+        setPageNumber(prev => {
+            const next = Math.min(Math.max(1, prev + offset), numPages || 1);
+            setInputPage(next.toString());
+            return next;
+        });
     }, [numPages]);
+
+    const handleGoToPage = (e: React.FormEvent) => {
+        e.preventDefault();
+        const page = parseInt(inputPage);
+        if (!isNaN(page) && page >= 1 && page <= (numPages || 1)) {
+            setPageNumber(page);
+        } else {
+            setInputPage(pageNumber.toString());
+        }
+    };
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             // Arrow keys for page navigation
             if (e.key === 'ArrowLeft') {
-                changePage(-1);
+                changePage(-pagesToShow);
             } else if (e.key === 'ArrowRight') {
-                changePage(1);
+                changePage(pagesToShow);
             }
             // Ctrl+Shift+F for search
             else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.code === 'KeyF' || e.key.toLowerCase() === 'f')) {
@@ -53,18 +69,19 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         };
         document.addEventListener('keydown', handleKeyDown, true);
         return () => document.removeEventListener('keydown', handleKeyDown, true);
-    }, [changePage, isSearching]);
+    }, [changePage, isSearching, pagesToShow]);
 
     const onDocumentLoadSuccess = async (pdf: any) => {
         setNumPages(pdf.numPages);
         setPageNumber(1);
+        setInputPage('1');
 
         // Extract text from all pages
         const texts: string[] = [];
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
-            const pageText = content.items.map((item: any) => item.str).join(' ');
+            const pageText = content.items.map((item: any) => (item as any).str).join(' ');
             texts.push(pageText.toLowerCase());
         }
         setPagesText(texts);
@@ -90,6 +107,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         if (results.length > 0) {
             setCurrentMatchIndex(0);
             setPageNumber(results[0]);
+            setInputPage(results[0].toString());
         } else {
             setCurrentMatchIndex(-1);
         }
@@ -100,6 +118,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         const nextIndex = (currentMatchIndex + direction + searchResults.length) % searchResults.length;
         setCurrentMatchIndex(nextIndex);
         setPageNumber(searchResults[nextIndex]);
+        setInputPage(searchResults[nextIndex].toString());
     };
 
     const highlightMatches = useCallback(() => {
@@ -189,17 +208,40 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                     </div>
 
                     <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '4px 8px' }}>
-                        <button onClick={() => changePage(-1)} disabled={pageNumber <= 1} className="btn-secondary" style={{ padding: '6px' }}><ChevronLeft size={20} /></button>
-                        <span style={{ minWidth: '70px', textAlign: 'center', fontWeight: 500 }}>
-                            {pageNumber} / {numPages || '--'}
-                        </span>
-                        <button onClick={() => changePage(1)} disabled={pageNumber >= (numPages || 0)} className="btn-secondary" style={{ padding: '6px' }}><ChevronRight size={20} /></button>
+                        <button onClick={() => changePage(-pagesToShow)} disabled={pageNumber <= 1} className="btn-secondary" style={{ padding: '6px' }} title="Trang trước"><ChevronLeft size={20} /></button>
+
+                        <form onSubmit={handleGoToPage} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <input
+                                type="text"
+                                value={inputPage}
+                                onChange={(e) => setInputPage(e.target.value)}
+                                onBlur={() => setInputPage(pageNumber.toString())}
+                                style={{ width: '40px', textAlign: 'center', border: 'none', background: 'var(--glass-bg)', color: 'var(--text-main)', borderRadius: '4px', padding: '2px 4px', fontWeight: 600 }}
+                            />
+                            <span style={{ color: 'var(--text-muted)' }}>/ {numPages || '--'}</span>
+                        </form>
+
+                        <button onClick={() => changePage(pagesToShow)} disabled={pageNumber >= (numPages || 0)} className="btn-secondary" style={{ padding: '6px' }} title="Trang sau"><ChevronRight size={20} /></button>
 
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
 
-                        <button onClick={() => setScale(s => Math.max(0.5, s - 0.1))} className="btn-secondary" style={{ padding: '6px' }}><ZoomOut size={18} /></button>
+                        <select
+                            value={pagesToShow}
+                            onChange={(e) => setPagesToShow(parseInt(e.target.value))}
+                            className="btn-secondary"
+                            style={{ padding: '4px 8px', fontSize: '0.8rem', outline: 'none' }}
+                            title="Số trang hiển thị"
+                        >
+                            <option value={1}>1 trang</option>
+                            <option value={2}>2 trang</option>
+                            <option value={3}>3 trang</option>
+                        </select>
+
+                        <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
+
+                        <button onClick={() => setScale(s => Math.max(0.5, s - 0.1))} className="btn-secondary" style={{ padding: '6px' }} title="Thu nhỏ"><ZoomOut size={18} /></button>
                         <span style={{ minWidth: '50px', textAlign: 'center', fontSize: '0.9rem' }}>{Math.round(scale * 100)}%</span>
-                        <button onClick={() => setScale(s => Math.min(2.5, s + 0.1))} className="btn-secondary" style={{ padding: '6px' }}><ZoomIn size={18} /></button>
+                        <button onClick={() => setScale(s => Math.min(2.5, s + 0.1))} className="btn-secondary" style={{ padding: '6px' }} title="Phóng to"><ZoomIn size={18} /></button>
 
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
 
@@ -209,7 +251,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
 
-                        <button onClick={() => setRotation(r => (r + 90) % 360)} className="btn-secondary" style={{ padding: '6px' }}><RotateCw size={18} /></button>
+                        <button onClick={() => setRotation(r => (r + 90) % 360)} className="btn-secondary" style={{ padding: '6px' }} title="Xoay trang"><RotateCw size={18} /></button>
                     </div>
                 </div>
 
@@ -226,22 +268,30 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                     loading={<div style={{ padding: '2rem' }}>Đang tải tài liệu...</div>}
                     error={<div style={{ color: '#ef4444', padding: '2rem' }}>Không thể tải PDF. Vui lòng kiểm tra lại link hoặc quyền truy cập.</div>}
                 >
-                    <Page
-                        key={`${pageNumber}-${searchTerm}-${scale}-${rotation}`}
-                        pageNumber={pageNumber}
-                        scale={scale}
-                        rotate={rotation}
-                        className="pdf-page shadow"
-                        renderAnnotationLayer={true}
-                        renderTextLayer={true}
-                        onRenderTextLayerSuccess={highlightMatches}
-                    />
+                    <div style={{ display: 'flex', gap: '2rem', flexWrap: 'nowrap' }}>
+                        {Array.from({ length: pagesToShow }).map((_, i) => {
+                            const p = pageNumber + i;
+                            if (p > (numPages || 0)) return null;
+                            return (
+                                <Page
+                                    key={`${p}-${searchTerm}-${scale}-${rotation}`}
+                                    pageNumber={p}
+                                    scale={scale}
+                                    rotate={rotation}
+                                    className="pdf-page shadow"
+                                    renderAnnotationLayer={true}
+                                    renderTextLayer={true}
+                                    onRenderTextLayerSuccess={i === 0 ? highlightMatches : undefined}
+                                />
+                            );
+                        })}
+                    </div>
                 </Document>
             </div>
 
             <style>{`
         .pdf-page {
-          box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
           border-radius: 4px;
           background: white;
         }
@@ -255,7 +305,12 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         ::selection {
             background: rgba(73, 145, 226, 0.3);
         }
-        /* Style for highlighted text matches - if we had a more complex highlighter */
+        .search-match {
+            background-color: #ffeb3b;
+            color: black;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
       `}</style>
         </div>
     );
