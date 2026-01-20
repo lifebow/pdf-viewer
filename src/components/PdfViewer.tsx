@@ -297,7 +297,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                         </span>
                     </div>
 
-                    <div className="nav-group" style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div className="nav-group" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
                         {/* Search Controls */}
                         <div className="glass search-container" style={{ display: 'flex', alignItems: 'center', padding: '0 8px', gap: '4px' }}>
                             {!isSearching ? (
@@ -335,6 +335,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                             )}
                         </div>
 
+                        {/* Paging Controls */}
                         <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '4px 8px' }}>
                             <button onClick={() => changePage(-pagesToShow)} disabled={pageNumber <= 1} className="btn-secondary" style={{ padding: '6px' }} title="Trang trước"><ChevronLeft size={20} /></button>
 
@@ -350,9 +351,10 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                             </form>
 
                             <button onClick={() => changePage(pagesToShow)} disabled={pageNumber >= (numPages || 0)} className="btn-secondary" style={{ padding: '6px' }} title="Trang sau"><ChevronRight size={20} /></button>
+                        </div>
 
-                            <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
-
+                        {/* Mode Controls */}
+                        <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '4px 8px' }}>
                             <button
                                 onClick={() => setViewMode(viewMode === 'paginated' ? 'scroll' : 'paginated')}
                                 className="btn-secondary"
@@ -363,26 +365,24 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                             </button>
 
                             {viewMode === 'paginated' && (
-                                <>
-                                    <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
-                                    <select
-                                        value={pagesToShow}
-                                        onChange={(e) => setPagesToShow(parseInt(e.target.value))}
-                                        className="btn-secondary"
-                                        style={{ padding: '4px 8px', fontSize: '0.8rem', outline: 'none' }}
-                                        title="Số trang hiển thị"
-                                    >
-                                        <option value={1}>1 trang</option>
-                                        <option value={2}>2 trang</option>
-                                        <option value={3}>3 trang</option>
-                                    </select>
-                                </>
+                                <select
+                                    value={pagesToShow}
+                                    onChange={(e) => setPagesToShow(parseInt(e.target.value))}
+                                    className="btn-secondary"
+                                    style={{ padding: '4px 8px', fontSize: '0.8rem', outline: 'none' }}
+                                    title="Số trang hiển thị"
+                                >
+                                    <option value={1}>1 trang</option>
+                                    <option value={2}>2 trang</option>
+                                    <option value={3}>3 trang</option>
+                                </select>
                             )}
+                        </div>
 
-                            <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
-
+                        {/* Zoom Controls */}
+                        <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '4px 8px' }}>
                             <button onClick={() => { setScale(s => Math.max(0.5, s - 0.1)); setScaleMode('manual'); }} className="btn-secondary" style={{ padding: '6px' }} title="Thu nhỏ"><ZoomOut size={18} /></button>
-                            <span style={{ minWidth: '70px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600 }}>
+                            <span style={{ minWidth: '45px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600 }}>
                                 {isNaN(scale) || !isFinite(scale) ? '100' : Math.round(scale * 100)}%
                             </span>
                             <button onClick={() => { setScale(s => Math.min(2.5, s + 0.1)); setScaleMode('manual'); }} className="btn-secondary" style={{ padding: '6px' }} title="Phóng to"><ZoomIn size={18} /></button>
@@ -411,9 +411,10 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                             >
                                 <Maximize size={18} />
                             </button>
+                        </div>
 
-                            <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
-
+                        {/* Tools & Settings */}
+                        <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '4px 8px' }}>
                             <select
                                 value={pdfTheme}
                                 onChange={(e) => setPdfTheme(e.target.value as any)}
@@ -427,17 +428,11 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                                 <option value="night">Night (Dịu mắt)</option>
                             </select>
 
-                            <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
-
-                            <button onClick={toggleTheme} className="btn-secondary" style={{ padding: '6px' }}>
+                            <button onClick={toggleTheme} className="btn-secondary" style={{ padding: '6px' }} title="Đổi giao diện">
                                 {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
                             </button>
 
-                            <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
-
                             <button onClick={() => { setRotation(r => (r + 90) % 360); if (scaleMode !== 'manual') setTimeout(calculateAutoScale, 100); }} className="btn-secondary" style={{ padding: '6px' }} title="Xoay trang"><RotateCw size={18} /></button>
-
-                            <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
 
                             <button onClick={() => setIsToolbarVisible(false)} className="btn-secondary" style={{ padding: '6px' }} title="Ẩn thanh công cụ">
                                 <ChevronUp size={18} />
