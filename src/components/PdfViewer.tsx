@@ -286,20 +286,20 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--pdf-bg)' }}>
             {/* Navbar / Toolbar */}
             {isToolbarVisible ? (
-                <nav className="glass" style={{ margin: '1rem', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
+                <nav className="glass pdf-navbar" style={{ margin: '1rem', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <ArrowLeft size={18} /> Quay lại
+                            <ArrowLeft size={18} /> <span className="nav-label">Quay lại</span>
                         </button>
-                        <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
-                        <span style={{ fontWeight: 600, color: 'var(--text-main)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div className="mobile-hide" style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
+                        <span className="filename-label" style={{ fontWeight: 600, color: 'var(--text-main)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {url.split('/').pop()}
                         </span>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div className="nav-group" style={{ display: 'flex', gap: '0.5rem' }}>
                         {/* Search Controls */}
-                        <div className="glass" style={{ display: 'flex', alignItems: 'center', padding: '0 8px', gap: '4px' }}>
+                        <div className="glass search-container" style={{ display: 'flex', alignItems: 'center', padding: '0 8px', gap: '4px' }}>
                             {!isSearching ? (
                                 <button
                                     onClick={() => setIsSearching(true)}
@@ -311,10 +311,10 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                                     <Search size={20} />
                                 </button>
                             ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
                                     <input
                                         autoFocus
-                                        className="input-field"
+                                        className="input-field search-input"
                                         style={{ width: '150px', height: '32px', padding: '4px 12px', fontSize: '0.9rem' }}
                                         placeholder="Tìm cụm từ..."
                                         value={searchTerm}
@@ -322,7 +322,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                                         data-testid="search-input"
                                     />
                                     {searchResults.length > 0 && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                                             <span>{currentMatchIndex + 1}/{searchResults.length}</span>
                                             <button onClick={() => navigateMatch(-1)} className="btn-secondary" style={{ padding: '2px' }}><ChevronLeft size={16} /></button>
                                             <button onClick={() => navigateMatch(1)} className="btn-secondary" style={{ padding: '2px' }}><ChevronRight size={16} /></button>
@@ -446,7 +446,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                     </div>
 
                     <button onClick={() => window.open(url, '_blank')} className="btn-primary" style={{ padding: '8px 16px' }}>
-                        Tải xuống <Download size={18} />
+                        <span className="nav-label">Tải xuống</span> <Download size={18} />
                     </button>
                 </nav>
             ) : (
@@ -466,7 +466,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                     }}
                 >
-                    <ChevronDown size={18} /> Hiện thanh công cụ
+                    <ChevronDown size={18} /> <span className="nav-label">Hiện thanh công cụ</span>
                 </button>
             )}
 

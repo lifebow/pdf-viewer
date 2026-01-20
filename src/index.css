@@ -154,3 +154,49 @@ body {
   z-index: 10 !important;
   position: relative !important;
 }
+
+/* Responsive Utilities */
+@media (max-width: 1024px) {
+  .nav-label {
+    display: none !important;
+  }
+  .pdf-navbar {
+    padding: 0.5rem 1rem !important;
+    gap: 0.5rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .filename-label {
+    display: none !important;
+  }
+  .pdf-navbar {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    height: auto !important;
+    margin: 0.5rem !important;
+    border-radius: 12px !important;
+  }
+  .nav-group {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem !important;
+  }
+  .mobile-hide {
+    display: none !important;
+  }
+  .search-container {
+      width: 100% !important;
+      order: -1;
+      margin-bottom: 0.5rem;
+  }
+  .search-input {
+      width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+    .btn-secondary, .btn-primary {
+        padding: 6px 10px !important;
+    }
+}
