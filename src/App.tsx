@@ -33,10 +33,23 @@ function App() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      const objectUrl = URL.createObjectURL(file);
+      setViewUrl(objectUrl);
+    }
+  };
+
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   if (viewUrl) {
-    return <PdfViewer url={viewUrl} onBack={() => setViewUrl(null)} isDarkMode={isDarkMode} toggleTheme={toggleTheme} />;
+    return <PdfViewer url={viewUrl} onBack={() => {
+      if (viewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(viewUrl);
+      }
+      setViewUrl(null);
+    }} isDarkMode={isDarkMode} toggleTheme={toggleTheme} />;
   }
 
   return (
@@ -58,7 +71,7 @@ function App() {
           SmallPDF View
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.2rem', maxWidth: '600px' }}>
-          Dán link PDF của bạn vào bên dưới để bắt đầu xem với trải nghiệm premium.
+          Dán link PDF hoặc tải file từ máy tính để bắt đầu xem.
         </p>
       </header>
 
@@ -74,12 +87,24 @@ function App() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             style={{ paddingLeft: '48px' }}
-            required
           />
         </div>
-        <button type="submit" className="btn-primary" style={{ justifyContent: 'center', width: '100%', height: '52px', fontSize: '1.1rem' }}>
-          Xem ngay <ExternalLink size={20} />
-        </button>
+
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button type="submit" className="btn-primary" style={{ flex: 1, justifyContent: 'center', height: '52px', fontSize: '1.1rem' }}>
+            Xem ngay <ExternalLink size={20} />
+          </button>
+
+          <label className="btn-secondary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', height: '52px', fontSize: '1.1rem' }}>
+            <FileText size={20} /> Tải file
+            <input
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+          </label>
+        </div>
       </form>
 
       <footer style={{ marginTop: 'auto', paddingTop: '4rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>

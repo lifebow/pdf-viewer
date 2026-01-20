@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, ArrowLeft, Download, Moon, Sun, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, ArrowLeft, Download, Moon, Sun, Search, X, List, Layout } from 'lucide-react';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -17,10 +17,11 @@ interface PdfViewerProps {
 const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTheme }) => {
     const getProxiedUrl = (originalUrl: string) => {
         if (!originalUrl.startsWith('http')) return originalUrl;
+        if (originalUrl.startsWith('blob:')) return originalUrl;
         try {
             const urlObj = new URL(originalUrl);
             if (urlObj.hostname === window.location.hostname) return originalUrl;
-            return `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
+            return `https://steep-union-ca07.artmoney306.workers.dev/?url=${encodeURIComponent(originalUrl)}`;
         } catch (e) {
             return originalUrl;
         }
@@ -34,6 +35,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [rotation, setRotation] = useState(0);
     const [pagesToShow, setPagesToShow] = useState(1);
     const [inputPage, setInputPage] = useState('1');
+    const [viewMode, setViewMode] = useState<'paginated' | 'scroll'>('paginated');
 
     // Search states
     const [searchTerm, setSearchTerm] = useState('');
@@ -42,23 +44,70 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [searchResults, setSearchResults] = useState<number[]>([]); // Array of page numbers
     const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
 
+    const containerRef = React.useRef<HTMLDivElement>(null);
+
+    const scrollToPage = useCallback((pageNum: number) => {
+        if (viewMode === 'scroll' && containerRef.current) {
+            const pageElement = containerRef.current.querySelector(`[data-page-number="${pageNum}"]`);
+            if (pageElement) {
+                pageElement.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    }, [viewMode]);
+
     const changePage = useCallback((offset: number) => {
         setPageNumber(prev => {
             const next = Math.min(Math.max(1, prev + offset), numPages || 1);
             setInputPage(next.toString());
+            if (viewMode === 'scroll') {
+                scrollToPage(next);
+            }
             return next;
         });
-    }, [numPages]);
+    }, [numPages, viewMode, scrollToPage]);
 
     const handleGoToPage = (e: React.FormEvent) => {
         e.preventDefault();
         const page = parseInt(inputPage);
         if (!isNaN(page) && page >= 1 && page <= (numPages || 1)) {
             setPageNumber(page);
+            if (viewMode === 'scroll') {
+                scrollToPage(page);
+            }
         } else {
             setInputPage(pageNumber.toString());
         }
     };
+
+    // Scroll listener to update pageNumber in scroll mode
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container || viewMode !== 'scroll') return;
+
+        const handleScroll = () => {
+            const pages = container.querySelectorAll('.pdf-page-wrapper');
+            let currentPage = 1;
+            let minDistance = Infinity;
+
+            pages.forEach((page) => {
+                const rect = page.getBoundingClientRect();
+                const distance = Math.abs(rect.top);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    const p = page.getAttribute('data-page-number');
+                    if (p) currentPage = parseInt(p);
+                }
+            });
+
+            if (currentPage !== pageNumber) {
+                setPageNumber(currentPage);
+                setInputPage(currentPage.toString());
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [viewMode, pageNumber]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -121,6 +170,9 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
             setCurrentMatchIndex(0);
             setPageNumber(results[0]);
             setInputPage(results[0].toString());
+            if (viewMode === 'scroll') {
+                scrollToPage(results[0]);
+            }
         } else {
             setCurrentMatchIndex(-1);
         }
@@ -132,14 +184,17 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         setCurrentMatchIndex(nextIndex);
         setPageNumber(searchResults[nextIndex]);
         setInputPage(searchResults[nextIndex].toString());
+        if (viewMode === 'scroll') {
+            scrollToPage(searchResults[nextIndex]);
+        }
     };
 
     const highlightMatches = useCallback(() => {
         if (!searchTerm || searchTerm.length < 2) return;
 
         const highlight = () => {
-            const textLayer = document.querySelector('.react-pdf__Page__textContent');
-            if (textLayer) {
+            const textLayers = document.querySelectorAll('.react-pdf__Page__textContent');
+            textLayers.forEach(textLayer => {
                 const textItems = textLayer.querySelectorAll('span');
                 if (textItems.length > 0) {
                     textItems.forEach(item => {
@@ -149,24 +204,22 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                             item.innerHTML = text.replace(regex, '<mark class="search-match">$1</mark>');
                         }
                     });
-                    return true;
                 }
-            }
-            return false;
+            });
         };
 
-        if (!highlight()) {
+        if (viewMode === 'paginated') {
             setTimeout(highlight, 200);
+        } else {
             setTimeout(highlight, 500);
-            setTimeout(highlight, 1000);
         }
-    }, [searchTerm]);
+    }, [searchTerm, viewMode]);
 
     useEffect(() => {
         if (isSearching && searchTerm && searchTerm.length >= 2) {
             highlightMatches();
         }
-    }, [searchTerm, isSearching, highlightMatches, pageNumber]);
+    }, [searchTerm, isSearching, highlightMatches, pageNumber, viewMode]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--pdf-bg)' }}>
@@ -238,17 +291,31 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
 
-                        <select
-                            value={pagesToShow}
-                            onChange={(e) => setPagesToShow(parseInt(e.target.value))}
+                        <button
+                            onClick={() => setViewMode(viewMode === 'paginated' ? 'scroll' : 'paginated')}
                             className="btn-secondary"
-                            style={{ padding: '4px 8px', fontSize: '0.8rem', outline: 'none' }}
-                            title="Số trang hiển thị"
+                            style={{ padding: '6px' }}
+                            title={viewMode === 'paginated' ? "Chế độ cuộn dọc" : "Chế độ chuyển trang"}
                         >
-                            <option value={1}>1 trang</option>
-                            <option value={2}>2 trang</option>
-                            <option value={3}>3 trang</option>
-                        </select>
+                            {viewMode === 'paginated' ? <List size={20} /> : <Layout size={20} />}
+                        </button>
+
+                        {viewMode === 'paginated' && (
+                            <>
+                                <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
+                                <select
+                                    value={pagesToShow}
+                                    onChange={(e) => setPagesToShow(parseInt(e.target.value))}
+                                    className="btn-secondary"
+                                    style={{ padding: '4px 8px', fontSize: '0.8rem', outline: 'none' }}
+                                    title="Số trang hiển thị"
+                                >
+                                    <option value={1}>1 trang</option>
+                                    <option value={2}>2 trang</option>
+                                    <option value={3}>3 trang</option>
+                                </select>
+                            </>
+                        )}
 
                         <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)', margin: '0 8px' }}></div>
 
@@ -274,31 +341,49 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
             </nav>
 
             {/* PDF Container */}
-            <div style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+            <div ref={containerRef} style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', padding: '2rem' }}>
                 <Document
                     file={proxiedUrl}
                     onLoadSuccess={onDocumentLoadSuccess}
                     loading={<div style={{ padding: '2rem' }}>Đang tải tài liệu...</div>}
                     error={<div style={{ color: '#ef4444', padding: '2rem' }}>Không thể tải PDF. Vui lòng kiểm tra lại link hoặc quyền truy cập.</div>}
                 >
-                    <div style={{ display: 'flex', gap: '2rem', flexWrap: 'nowrap' }}>
-                        {Array.from({ length: pagesToShow }).map((_, i) => {
-                            const p = pageNumber + i;
-                            if (p > (numPages || 0)) return null;
-                            return (
-                                <Page
-                                    key={`${p}-${searchTerm}-${scale}-${rotation}`}
-                                    pageNumber={p}
-                                    scale={scale}
-                                    rotate={rotation}
-                                    className="pdf-page shadow"
-                                    renderAnnotationLayer={true}
-                                    renderTextLayer={true}
-                                    onRenderTextLayerSuccess={i === 0 ? highlightMatches : undefined}
-                                />
-                            );
-                        })}
-                    </div>
+                    {viewMode === 'paginated' ? (
+                        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'nowrap' }}>
+                            {Array.from({ length: pagesToShow }).map((_, i) => {
+                                const p = pageNumber + i;
+                                if (p > (numPages || 0)) return null;
+                                return (
+                                    <Page
+                                        key={`${p}-${searchTerm}-${scale}-${rotation}`}
+                                        pageNumber={p}
+                                        scale={scale}
+                                        rotate={rotation}
+                                        className="pdf-page shadow"
+                                        renderAnnotationLayer={true}
+                                        renderTextLayer={true}
+                                        onRenderTextLayerSuccess={i === 0 ? highlightMatches : undefined}
+                                    />
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center' }}>
+                            {Array.from({ length: numPages || 0 }).map((_, i) => (
+                                <div key={i + 1} data-page-number={i + 1} className="pdf-page-wrapper">
+                                    <Page
+                                        pageNumber={i + 1}
+                                        scale={scale}
+                                        rotate={rotation}
+                                        className="pdf-page shadow"
+                                        renderAnnotationLayer={true}
+                                        renderTextLayer={true}
+                                        onRenderTextLayerSuccess={highlightMatches}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </Document>
             </div>
 
