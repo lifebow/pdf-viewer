@@ -194,12 +194,19 @@ body {
 @media (max-width: 768px) {
   .search-container {
     width: 100% !important;
+    max-width: 100% !important;
     order: -1;
     margin-bottom: 0.25rem;
   }
 
   .search-input {
     width: 100% !important;
+    flex: 1;
+  }
+
+  .nav-group .glass {
+    padding: 2px 4px !important;
+    gap: 0.25rem !important;
   }
 }
 
@@ -214,6 +221,49 @@ body {
     gap: 0.25rem !important;
     padding: 0.4rem !important;
   }
+
+  .floating-show-btn {
+    padding: 6px 12px !important;
+  }
+}
+
+.pdf-viewer-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--pdf-bg);
+}
+
+.pdf-main-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.document-status {
+  padding: 2rem;
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+}
+
+.document-status.error {
+  color: #ef4444;
+}
+
+.floating-show-btn {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .pdf-document-root {
@@ -305,4 +355,106 @@ body {
   .sidebar-thumbnails.open {
     transform: translateX(0);
   }
+}
+
+/* Landing Page Styles */
+.app-landing-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  text-align: center;
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  width: 100%;
+}
+
+.theme-toggle-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  border-radius: 50% !important;
+  padding: 12px !important;
+}
+
+.app-header {
+  margin-bottom: 3rem;
+}
+
+.app-logo-wrapper {
+  display: inline-flex;
+  padding: 12px;
+  background: rgba(73, 145, 226, 0.1);
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
+}
+
+.app-title {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #4991e2 0%, #357abd 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.app-subtitle {
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  max-width: 600px;
+}
+
+.landing-form {
+  padding: 2rem;
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.landing-btn {
+  flex: 1;
+  justify-content: center !important;
+  height: 52px;
+  font-size: 1.1rem !important;
+}
+
+.file-upload-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.app-footer {
+  margin-top: auto;
+  padding: 4rem 0 2rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-version {
+  opacity: 0.6;
+  font-size: 0.8rem;
 }

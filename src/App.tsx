@@ -54,31 +54,30 @@ function App() {
   }
 
   return (
-    <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center', position: 'relative' }}>
+    <div className="app-landing-container">
       <button
         onClick={toggleTheme}
-        className="btn-secondary"
-        style={{ position: 'absolute', top: '1rem', right: '1rem', borderRadius: '50%', padding: '12px' }}
+        className="btn-secondary theme-toggle-btn"
         title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
       >
         {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
       </button>
 
-      <header style={{ marginBottom: '3rem' }}>
-        <div style={{ display: 'inline-flex', padding: '12px', background: 'rgba(73, 145, 226, 0.1)', borderRadius: '20px', marginBottom: '1.5rem' }}>
+      <header className="app-header">
+        <div className="app-logo-wrapper">
           <FileText size={48} color="#4991e2" />
         </div>
-        <h1 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '0.5rem', background: 'linear-gradient(135deg, #4991e2 0%, #357abd 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+        <h1 className="app-title">
           PDF Viewer
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1.2rem', maxWidth: '600px' }}>
+        <p className="app-subtitle">
           Dán link PDF hoặc tải file từ máy tính để bắt đầu xem.
         </p>
       </header>
 
-      <form onSubmit={handleView} className="glass" style={{ padding: '2rem', width: '100%', maxWidth: '600px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <form onSubmit={handleView} className="glass landing-form">
         <div style={{ position: 'relative' }}>
-          <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+          <div className="input-icon">
             <LinkIcon size={20} />
           </div>
           <input
@@ -91,12 +90,12 @@ function App() {
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <button type="submit" className="btn-primary" style={{ flex: 1, justifyContent: 'center', height: '52px', fontSize: '1.1rem' }}>
+        <div className="form-actions">
+          <button type="submit" className="btn-primary landing-btn">
             Xem ngay <ExternalLink size={20} />
           </button>
 
-          <label className="btn-secondary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', height: '52px', fontSize: '1.1rem' }}>
+          <label className="btn-secondary landing-btn file-upload-label">
             <FileText size={20} /> Tải file
             <input
               type="file"
@@ -108,9 +107,9 @@ function App() {
         </div>
       </form>
 
-      <footer style={{ marginTop: 'auto', paddingTop: '4rem', color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <footer className="app-footer">
         <div>© 2026 lifebow - Built with Privacy in Mind</div>
-        <div style={{ opacity: 0.6, fontSize: '0.8rem' }}>Version v{version}</div>
+        <div className="app-version">Version v{version}</div>
       </footer>
     </div>
   );

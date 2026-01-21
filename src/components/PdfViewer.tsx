@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, ArrowLeft, Download, Moon, Sun, Search, X, List, Layout, Maximize, ChevronUp, ChevronDown, PanelLeft } from 'lucide-react';
+import { Document, pdfjs } from 'react-pdf';
+import { ChevronDown } from 'lucide-react';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+
+import Toolbar from './pdf/Toolbar';
+import Sidebar from './pdf/Sidebar';
+import PdfContent from './pdf/PdfContent';
 
 // Set worker URL for pdf.js
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -29,6 +33,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
     const proxiedUrl = getProxiedUrl(url);
 
+    // PDF State
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1.0);
@@ -41,11 +46,22 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [isToolbarVisible, setIsToolbarVisible] = useState(true);
     const [showSidebar, setShowSidebar] = useState(window.innerWidth > 768);
 
+    // Auto-hide sidebar on resize if below threshold
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth <= 768 && showSidebar) {
+                setShowSidebar(false);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [showSidebar]);
+
     // Search states
     const [searchTerm, setSearchTerm] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [pagesText, setPagesText] = useState<string[]>([]);
-    const [searchResults, setSearchResults] = useState<number[]>([]); // Array of page numbers
+    const [searchResults, setSearchResults] = useState<number[]>([]);
     const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
 
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -57,15 +73,13 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         if (scaleMode === 'manual') return;
 
         const container = containerRef.current;
-        const containerWidth = container.clientWidth - 48; // Horizontal padding
-        const containerHeight = container.clientHeight - 48; // Vertical padding
+        const containerWidth = container.clientWidth - 48;
+        const containerHeight = container.clientHeight - 48;
 
         if (scaleMode === 'fit-width') {
             const newScale = containerWidth / pageOriginalWidthRef.current;
             setScale(newScale);
         } else if (scaleMode === 'fit-page') {
-            // Chrome-like Fit to Page: fits the entire page within the viewport
-            // We subtract a bit more for the toolbar/header height (approx 80px)
             const availableHeight = containerHeight - 100;
             const scaleW = containerWidth / pageOriginalWidthRef.current;
             const scaleH = availableHeight / pageOriginalHeightRef.current;
@@ -74,23 +88,23 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
             setScale(1.0);
             setRotation(0);
             setPagesToShow(1);
-            setScaleMode('manual'); // Reset to manual after applying original
+            setScaleMode('manual');
         }
     }, [scaleMode, rotation, showSidebar, viewMode, pagesToShow]);
 
+    // Sync PDF theme with app theme
     useEffect(() => {
-        if (scaleMode !== 'manual') {
-            calculateAutoScale();
-        }
+        if (isDarkMode && pdfTheme === 'light') setPdfTheme('dark');
+        else if (!isDarkMode && pdfTheme === 'dark') setPdfTheme('light');
+    }, [isDarkMode]);
+
+    useEffect(() => {
+        if (scaleMode !== 'manual') calculateAutoScale();
     }, [scaleMode, calculateAutoScale, pagesToShow, viewMode, numPages]);
 
     useEffect(() => {
         if (scaleMode === 'manual') return;
-
-        const handleResize = () => {
-            calculateAutoScale();
-        };
-
+        const handleResize = () => calculateAutoScale();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [scaleMode, calculateAutoScale]);
@@ -98,9 +112,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const scrollToPage = useCallback((pageNum: number) => {
         if (viewMode === 'scroll' && containerRef.current) {
             const pageElement = containerRef.current.querySelector(`[data-page-number="${pageNum}"]`);
-            if (pageElement) {
-                pageElement.scrollIntoView({ behavior: 'smooth' });
-            }
+            if (pageElement) pageElement.scrollIntoView({ behavior: 'smooth' });
         }
     }, [viewMode]);
 
@@ -108,9 +120,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         setPageNumber(prev => {
             const next = Math.min(Math.max(1, prev + offset), numPages || 1);
             setInputPage(next.toString());
-            if (viewMode === 'scroll') {
-                scrollToPage(next);
-            }
+            if (viewMode === 'scroll') scrollToPage(next);
             return next;
         });
     }, [numPages, viewMode, scrollToPage]);
@@ -120,15 +130,12 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         const page = parseInt(inputPage);
         if (!isNaN(page) && page >= 1 && page <= (numPages || 1)) {
             setPageNumber(page);
-            if (viewMode === 'scroll') {
-                scrollToPage(page);
-            }
+            if (viewMode === 'scroll') scrollToPage(page);
         } else {
             setInputPage(pageNumber.toString());
         }
     };
 
-    // Scroll listener to update pageNumber in scroll mode
     useEffect(() => {
         const container = containerRef.current;
         if (!container || viewMode !== 'scroll') return;
@@ -160,19 +167,12 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Arrow keys for page navigation
-            if (e.key === 'ArrowLeft') {
-                changePage(-pagesToShow);
-            } else if (e.key === 'ArrowRight') {
-                changePage(pagesToShow);
-            }
-            // Ctrl+Shift+F for search
+            if (e.key === 'ArrowLeft') changePage(-pagesToShow);
+            else if (e.key === 'ArrowRight') changePage(pagesToShow);
             else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.code === 'KeyF' || e.key.toLowerCase() === 'f')) {
                 e.preventDefault();
                 setIsSearching(true);
-            }
-            // Escape to close search
-            else if (e.key === 'Escape' && isSearching) {
+            } else if (e.key === 'Escape' && isSearching) {
                 setIsSearching(false);
                 setSearchTerm('');
                 setSearchResults([]);
@@ -186,35 +186,38 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         setNumPages(pdf.numPages);
         setPageNumber(1);
         setInputPage('1');
+        if (scaleMode !== 'manual') setTimeout(calculateAutoScale, 500);
 
-        if (scaleMode !== 'manual') {
-            setTimeout(calculateAutoScale, 500);
-        }
-
-        // Extract text from all pages
+        // Extract text from all pages asynchronously to avoid blocking UI
         const texts: string[] = [];
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const content = await page.getTextContent();
-            const pageText = content.items.map((item: any) => (item as any).str).join(' ');
-            texts.push(pageText.toLowerCase());
-        }
-        setPagesText(texts);
+        const extractText = async (start: number) => {
+            const end = Math.min(start + 5, pdf.numPages);
+            for (let i = start; i <= end; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                const pageText = content.items.map((item: any) => (item as any).str).join(' ');
+                texts[i - 1] = pageText.toLowerCase();
+            }
+            if (end < pdf.numPages) {
+                // Schedule next chunk
+                setTimeout(() => extractText(end + 1), 50);
+            } else {
+                setPagesText([...texts]);
+            }
+        };
+        extractText(1);
     };
 
     const onPageLoadSuccess = (page: any) => {
         const { width, height } = page.getViewport({ scale: 1 });
         pageOriginalWidthRef.current = width;
         pageOriginalHeightRef.current = height;
-        if (scaleMode !== 'manual') {
-            calculateAutoScale();
-        }
+        if (scaleMode !== 'manual') calculateAutoScale();
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         const term = e.target.value.toLowerCase();
         setSearchTerm(term);
-
         if (term.length < 2) {
             setSearchResults([]);
             setCurrentMatchIndex(-1);
@@ -223,18 +226,14 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
         const results: number[] = [];
         pagesText.forEach((text, index) => {
-            if (text.includes(term)) {
-                results.push(index + 1);
-            }
+            if (text.includes(term)) results.push(index + 1);
         });
         setSearchResults(results);
         if (results.length > 0) {
             setCurrentMatchIndex(0);
             setPageNumber(results[0]);
             setInputPage(results[0].toString());
-            if (viewMode === 'scroll') {
-                scrollToPage(results[0]);
-            }
+            if (viewMode === 'scroll') scrollToPage(results[0]);
         } else {
             setCurrentMatchIndex(-1);
         }
@@ -242,18 +241,21 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
     const navigateMatch = (direction: number) => {
         if (searchResults.length === 0) return;
-        const nextIndex = (currentMatchIndex + direction + searchResults.length) % searchResults.length;
-        setCurrentMatchIndex(nextIndex);
-        setPageNumber(searchResults[nextIndex]);
-        setInputPage(searchResults[nextIndex].toString());
-        if (viewMode === 'scroll') {
-            scrollToPage(searchResults[nextIndex]);
-        }
+        setSearchResults(prev => {
+            setCurrentMatchIndex(curr => {
+                const nextIndex = (curr + direction + prev.length) % prev.length;
+                const nextPage = prev[nextIndex];
+                setPageNumber(nextPage);
+                setInputPage(nextPage.toString());
+                if (viewMode === 'scroll') scrollToPage(nextPage);
+                return nextIndex;
+            });
+            return prev;
+        });
     };
 
     const highlightMatches = useCallback(() => {
         if (!searchTerm || searchTerm.length < 2) return;
-
         const highlight = () => {
             const textLayers = document.querySelectorAll('.react-pdf__Page__textContent');
             textLayers.forEach(textLayer => {
@@ -269,327 +271,108 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                 }
             });
         };
-
-        if (viewMode === 'paginated') {
-            setTimeout(highlight, 200);
-        } else {
-            setTimeout(highlight, 500);
-        }
+        setTimeout(highlight, viewMode === 'paginated' ? 200 : 500);
     }, [searchTerm, viewMode]);
 
     useEffect(() => {
-        if (isSearching && searchTerm && searchTerm.length >= 2) {
-            highlightMatches();
-        }
+        if (isSearching && searchTerm && searchTerm.length >= 2) highlightMatches();
     }, [searchTerm, isSearching, highlightMatches, pageNumber, viewMode]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--pdf-bg)' }}>
-            {/* Navbar / Toolbar */}
+        <div className="pdf-viewer-root">
             {isToolbarVisible ? (
-                <nav className="glass pdf-navbar" style={{ margin: '1rem', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <button onClick={() => setShowSidebar(!showSidebar)} className={`btn-secondary ${showSidebar ? 'active' : ''}`} style={{ padding: '6px' }} title="Bật/Tắt thanh bên">
-                            <PanelLeft size={20} />
-                        </button>
-                        <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
-                        <button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <ArrowLeft size={18} /> <span className="nav-label">Quay lại</span>
-                        </button>
-                        <div className="mobile-hide" style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
-                        <span className="filename-label" style={{ fontWeight: 600, color: 'var(--text-main)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {url.split('/').pop()}
-                        </span>
-                    </div>
-
-                    <div className="nav-group" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        {/* Search Controls */}
-                        <div className="glass search-container" style={{ display: 'flex', alignItems: 'center', padding: '0 8px', gap: '4px' }}>
-                            {!isSearching ? (
-                                <button
-                                    onClick={() => setIsSearching(true)}
-                                    className="btn-secondary"
-                                    style={{ border: 'none', background: 'none' }}
-                                    title="Tìm kiếm (Ctrl+Shift+F)"
-                                    data-testid="search-button"
-                                >
-                                    <Search size={20} />
-                                </button>
-                            ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-                                    <input
-                                        autoFocus
-                                        className="input-field search-input"
-                                        style={{ width: '150px', height: '32px', padding: '4px 12px', fontSize: '0.9rem' }}
-                                        placeholder="Tìm cụm từ..."
-                                        value={searchTerm}
-                                        onChange={handleSearch}
-                                        data-testid="search-input"
-                                    />
-                                    {searchResults.length > 0 && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                                            <span>{currentMatchIndex + 1}/{searchResults.length}</span>
-                                            <button onClick={() => navigateMatch(-1)} className="btn-secondary" style={{ padding: '2px' }}><ChevronLeft size={16} /></button>
-                                            <button onClick={() => navigateMatch(1)} className="btn-secondary" style={{ padding: '2px' }}><ChevronRight size={16} /></button>
-                                        </div>
-                                    )}
-                                    <button onClick={() => { setIsSearching(false); setSearchTerm(''); setSearchResults([]); }} className="btn-secondary" style={{ border: 'none', background: 'none' }}>
-                                        <X size={18} />
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Paging Controls */}
-                        <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '4px 8px' }}>
-                            <button onClick={() => changePage(-pagesToShow)} disabled={pageNumber <= 1} className="btn-secondary" style={{ padding: '6px' }} title="Trang trước"><ChevronLeft size={20} /></button>
-
-                            <form onSubmit={handleGoToPage} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <input
-                                    type="text"
-                                    value={inputPage}
-                                    onChange={(e) => setInputPage(e.target.value)}
-                                    onBlur={() => setInputPage(pageNumber.toString())}
-                                    style={{ width: '40px', textAlign: 'center', border: 'none', background: 'var(--glass-bg)', color: 'var(--text-main)', borderRadius: '4px', padding: '2px 4px', fontWeight: 600 }}
-                                />
-                                <span style={{ color: 'var(--text-muted)' }}>/ {numPages || '--'}</span>
-                            </form>
-
-                            <button onClick={() => changePage(pagesToShow)} disabled={pageNumber >= (numPages || 0)} className="btn-secondary" style={{ padding: '6px' }} title="Trang sau"><ChevronRight size={20} /></button>
-                        </div>
-
-                        {/* Mode Controls */}
-                        <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '4px 8px' }}>
-                            <button
-                                onClick={() => setViewMode(viewMode === 'paginated' ? 'scroll' : 'paginated')}
-                                className="btn-secondary"
-                                style={{ padding: '6px' }}
-                                title={viewMode === 'paginated' ? "Chế độ cuộn dọc" : "Chế độ chuyển trang"}
-                            >
-                                {viewMode === 'paginated' ? <List size={20} /> : <Layout size={20} />}
-                            </button>
-
-                            {viewMode === 'paginated' && (
-                                <select
-                                    value={pagesToShow}
-                                    onChange={(e) => setPagesToShow(parseInt(e.target.value))}
-                                    className="btn-secondary"
-                                    style={{ padding: '4px 8px', fontSize: '0.8rem', outline: 'none' }}
-                                    title="Số trang hiển thị"
-                                >
-                                    <option value={1}>1 trang</option>
-                                    <option value={2}>2 trang</option>
-                                    <option value={3}>3 trang</option>
-                                </select>
-                            )}
-                        </div>
-
-                        {/* Zoom Controls */}
-                        <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '4px 8px' }}>
-                            <button onClick={() => { setScale(s => Math.max(0.5, s - 0.1)); setScaleMode('manual'); }} className="btn-secondary" style={{ padding: '6px' }} title="Thu nhỏ"><ZoomOut size={18} /></button>
-                            <span style={{ minWidth: '45px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600 }}>
-                                {isNaN(scale) || !isFinite(scale) ? '100' : Math.round(scale * 100)}%
-                            </span>
-                            <button onClick={() => { setScale(s => Math.min(2.5, s + 0.1)); setScaleMode('manual'); }} className="btn-secondary" style={{ padding: '6px' }} title="Phóng to"><ZoomIn size={18} /></button>
-
-                            <button
-                                onClick={() => {
-                                    if (scaleMode === 'manual' || scaleMode === 'original') {
-                                        setScaleMode('fit-width');
-                                    } else if (scaleMode === 'fit-width') {
-                                        setScaleMode('fit-page');
-                                    } else if (scaleMode === 'fit-page') {
-                                        setScaleMode('original');
-                                    }
-                                }}
-                                className={`btn-secondary ${scaleMode !== 'manual' ? 'active' : ''}`}
-                                style={{
-                                    padding: '6px',
-                                    color: scaleMode !== 'manual' ? '#3b82f6' : 'inherit',
-                                    background: scaleMode !== 'manual' ? 'rgba(59, 130, 246, 0.1)' : 'transparent'
-                                }}
-                                title={
-                                    scaleMode === 'fit-width' ? "Chuyển sang Vừa trang" :
-                                        scaleMode === 'fit-page' ? "Chuyển sang Gốc" :
-                                            "Tự động giãn (Rộng -> Trang -> Gốc)"
-                                }
-                            >
-                                <Maximize size={18} />
-                            </button>
-                        </div>
-
-                        {/* Tools & Settings */}
-                        <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '4px 8px' }}>
-                            <select
-                                value={pdfTheme}
-                                onChange={(e) => setPdfTheme(e.target.value as any)}
-                                className="btn-secondary"
-                                style={{ padding: '4px 8px', fontSize: '0.8rem', outline: 'none' }}
-                                title="Màu nền PDF"
-                            >
-                                <option value="light">Trang trắng</option>
-                                <option value="dark">Thông minh (Dark)</option>
-                                <option value="sepia">Sepia (Cổ điển)</option>
-                                <option value="night">Night (Dịu mắt)</option>
-                            </select>
-
-                            <button onClick={toggleTheme} className="btn-secondary" style={{ padding: '6px' }} title="Đổi giao diện">
-                                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-                            </button>
-
-                            <button onClick={() => { setRotation(r => (r + 90) % 360); if (scaleMode !== 'manual') setTimeout(calculateAutoScale, 100); }} className="btn-secondary" style={{ padding: '6px' }} title="Xoay trang"><RotateCw size={18} /></button>
-
-                            <button onClick={() => setIsToolbarVisible(false)} className="btn-secondary" style={{ padding: '6px' }} title="Ẩn thanh công cụ">
-                                <ChevronUp size={18} />
-                            </button>
-                        </div>
-                    </div>
-
-                    <button onClick={() => window.open(url, '_blank')} className="btn-primary" style={{ padding: '8px 16px' }}>
-                        <span className="nav-label">Tải xuống</span> <Download size={18} />
-                    </button>
-                </nav>
+                <Toolbar
+                    url={url}
+                    onBack={onBack}
+                    showSidebar={showSidebar}
+                    setShowSidebar={setShowSidebar}
+                    isSearching={isSearching}
+                    setIsSearching={setIsSearching}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    handleSearch={handleSearch}
+                    searchResults={searchResults}
+                    setSearchResults={setSearchResults}
+                    currentMatchIndex={currentMatchIndex}
+                    navigateMatch={navigateMatch}
+                    changePage={changePage}
+                    pageNumber={pageNumber}
+                    numPages={numPages}
+                    inputPage={inputPage}
+                    setInputPage={setInputPage}
+                    handleGoToPage={handleGoToPage}
+                    viewMode={viewMode}
+                    setViewMode={setViewMode}
+                    pagesToShow={pagesToShow}
+                    setPagesToShow={setPagesToShow}
+                    scale={scale}
+                    setScale={setScale}
+                    scaleMode={scaleMode}
+                    setScaleMode={setScaleMode}
+                    pdfTheme={pdfTheme}
+                    setPdfTheme={setPdfTheme}
+                    isDarkMode={isDarkMode}
+                    toggleTheme={toggleTheme}
+                    setRotation={setRotation}
+                    setIsToolbarVisible={setIsToolbarVisible}
+                    calculateAutoScale={calculateAutoScale}
+                />
             ) : (
                 <button
                     onClick={() => setIsToolbarVisible(true)}
-                    className="btn-secondary glass fade-in"
-                    style={{
-                        position: 'absolute',
-                        top: '1rem',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        zIndex: 100,
-                        padding: '8px 16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                    }}
+                    className="btn-secondary glass fade-in floating-show-btn"
                 >
                     <ChevronDown size={18} /> <span className="nav-label">Hiện thanh công cụ</span>
                 </button>
             )}
 
-            {/* Main Content Area (Sidebar + PDF) */}
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+            <div className="pdf-main-area">
                 <Document
                     file={proxiedUrl}
                     onLoadSuccess={onDocumentLoadSuccess}
-                    loading={<div style={{ padding: '2rem', display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>Đang tải tài liệu...</div>}
-                    error={<div style={{ color: '#ef4444', padding: '2rem', display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>Không thể tải PDF. Vui lòng kiểm tra lại link hoặc quyền truy cập.</div>}
+                    loading={<div className="document-status">Đang tải tài liệu...</div>}
+                    error={<div className="document-status error">Không thể tải PDF.</div>}
                     className="pdf-document-root"
                 >
                     <div style={{ display: 'flex', height: '100%', width: '100%' }}>
-                        {/* Sidebar Thumbnails */}
-                        <div className={`sidebar-thumbnails ${showSidebar ? 'open' : 'closed'}`}>
-                            {Array.from({ length: numPages || 0 }).map((_, i) => (
-                                <div
-                                    key={`thump-${i + 1}`}
-                                    className={`thumbnail-item ${pageNumber === i + 1 ? 'active' : ''}`}
-                                    onClick={() => {
-                                        setPageNumber(i + 1);
-                                        setInputPage((i + 1).toString());
-                                        if (viewMode === 'scroll') scrollToPage(i + 1);
-                                    }}
-                                >
-                                    <div className="thumbnail-wrapper">
-                                        <Page
-                                            pageNumber={i + 1}
-                                            scale={0.2}
-                                            renderAnnotationLayer={false}
-                                            renderTextLayer={false}
-                                        />
-                                    </div>
-                                    <div className="thumbnail-page-number">{i + 1}</div>
-                                </div>
-                            ))}
-                        </div>
+                        <Sidebar
+                            showSidebar={showSidebar}
+                            numPages={numPages}
+                            pageNumber={pageNumber}
+                            setPageNumber={setPageNumber}
+                            setInputPage={setInputPage}
+                            viewMode={viewMode}
+                            scrollToPage={scrollToPage}
+                        />
 
-                        {/* PDF Viewer Container */}
-                        <div
-                            ref={containerRef}
-                            style={{
-                                flex: 1,
-                                overflow: 'auto',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: viewMode === 'paginated' ? 'center' : 'flex-start',
-                                padding: '2rem',
-                                background: 'var(--pdf-bg)'
-                            }}
-                        >
-                            {viewMode === 'paginated' ? (
-                                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'nowrap', justifyContent: 'center', alignItems: 'center', minWidth: 'min-content' }}>
-                                    {Array.from({ length: pagesToShow }).map((_, i) => {
-                                        const p = pageNumber + i;
-                                        if (p > (numPages || 0)) return null;
-                                        return (
-                                            <Page
-                                                key={`${p}-${searchTerm}-${scale}-${rotation}`}
-                                                pageNumber={p}
-                                                scale={scale}
-                                                rotate={rotation}
-                                                className="pdf-page shadow"
-                                                renderAnnotationLayer={true}
-                                                renderTextLayer={true}
-                                                onLoadSuccess={i === 0 ? onPageLoadSuccess : undefined}
-                                                onRenderTextLayerSuccess={i === 0 ? highlightMatches : undefined}
-                                            />
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center' }}>
-                                    {Array.from({ length: numPages || 0 }).map((_, i) => (
-                                        <div key={i + 1} data-page-number={i + 1} className="pdf-page-wrapper">
-                                            <Page
-                                                pageNumber={i + 1}
-                                                scale={scale}
-                                                rotate={rotation}
-                                                className="pdf-page shadow"
-                                                renderAnnotationLayer={true}
-                                                renderTextLayer={true}
-                                                onLoadSuccess={i === 0 ? onPageLoadSuccess : undefined}
-                                                onRenderTextLayerSuccess={highlightMatches}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        <PdfContent
+                            viewMode={viewMode}
+                            pagesToShow={pagesToShow}
+                            pageNumber={pageNumber}
+                            numPages={numPages}
+                            scale={scale}
+                            rotation={rotation}
+                            searchTerm={searchTerm}
+                            onPageLoadSuccess={onPageLoadSuccess}
+                            highlightMatches={highlightMatches}
+                            containerRef={containerRef}
+                        />
                     </div>
                 </Document>
             </div>
 
             <style>{`
-        .pdf-page {
-          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-          border-radius: 4px;
-          background: white;
-          transition: filter 0.3s ease;
-          ${pdfTheme === 'dark' ? 'filter: invert(1) hue-rotate(180deg);' : ''}
-          ${pdfTheme === 'sepia' ? 'filter: sepia(0.8) brightness(0.9) contrast(1.1);' : ''}
-          ${pdfTheme === 'night' ? 'filter: invert(0.9) hue-rotate(210deg) brightness(0.8);' : ''}
-        }
-        .shadow {
-          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
-        button:disabled {
-          opacity: 0.3;
-          cursor: not-allowed;
-        }
-        ::selection {
-            background: rgba(73, 145, 226, 0.3);
-        }
-        .search-match {
-            background-color: #ffeb3b;
-            color: black;
-            border-radius: 2px;
-            padding: 0 1px;
-        }
-      `}</style>
-        </div>
+                .pdf-page {
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                    border-radius: 4px;
+                    background: white;
+                    transition: filter 0.3s ease;
+                    ${pdfTheme === 'dark' ? 'filter: invert(1) hue-rotate(180deg);' : ''}
+                    ${pdfTheme === 'sepia' ? 'filter: sepia(0.8) brightness(0.9) contrast(1.1);' : ''}
+                    ${pdfTheme === 'night' ? 'filter: invert(0.9) hue-rotate(210deg) brightness(0.8);' : ''}
+                }
+            `}</style>
+        </div >
     );
 };
 
