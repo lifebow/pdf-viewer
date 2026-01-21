@@ -7,6 +7,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import Toolbar from './pdf/Toolbar';
 import Sidebar from './pdf/Sidebar';
 import PdfContent from './pdf/PdfContent';
+import ExtractionModal from './pdf/ExtractionModal';
 
 // Set worker URL for pdf.js
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -40,11 +41,41 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [rotation, setRotation] = useState(0);
     const [pagesToShow, setPagesToShow] = useState(1);
     const [inputPage, setInputPage] = useState('1');
-    const [viewMode, setViewMode] = useState<'paginated' | 'scroll'>('paginated');
+    const [viewMode, setViewMode] = useState<'paginated' | 'scroll'>('scroll');
     const [scaleMode, setScaleMode] = useState<'manual' | 'fit-width' | 'fit-page' | 'original'>('manual');
     const [pdfTheme, setPdfTheme] = useState<'light' | 'dark' | 'sepia' | 'night'>('light');
     const [isToolbarVisible, setIsToolbarVisible] = useState(true);
     const [showSidebar, setShowSidebar] = useState(window.innerWidth > 768);
+    const [bookmarks, setBookmarks] = useState<number[]>(() => {
+        const stored = localStorage.getItem('pdf_bookmarks');
+        if (stored) {
+            const allBookmarks = JSON.parse(stored);
+            return allBookmarks[url] || [];
+        }
+        return [];
+    });
+
+    // Search states
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [pagesText, setPagesText] = useState<string[]>([]);
+    const [searchResults, setSearchResults] = useState<number[]>([]);
+    const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
+
+    const [isExtractModalOpen, setIsExtractModalOpen] = useState(false);
+    const [extractedText, setExtractedText] = useState('');
+
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const pageOriginalWidthRef = React.useRef<number | null>(null);
+    const pageOriginalHeightRef = React.useRef<number | null>(null);
+
+    // Save bookmarks
+    useEffect(() => {
+        const stored = localStorage.getItem('pdf_bookmarks');
+        const allBookmarks = stored ? JSON.parse(stored) : {};
+        allBookmarks[url] = bookmarks;
+        localStorage.setItem('pdf_bookmarks', JSON.stringify(allBookmarks));
+    }, [bookmarks, url]);
 
     // Auto-hide sidebar on resize if below threshold
     useEffect(() => {
@@ -56,17 +87,6 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [showSidebar]);
-
-    // Search states
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
-    const [pagesText, setPagesText] = useState<string[]>([]);
-    const [searchResults, setSearchResults] = useState<number[]>([]);
-    const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
-
-    const containerRef = React.useRef<HTMLDivElement>(null);
-    const pageOriginalWidthRef = React.useRef<number | null>(null);
-    const pageOriginalHeightRef = React.useRef<number | null>(null);
 
     const calculateAutoScale = useCallback(() => {
         if (!containerRef.current || !pageOriginalWidthRef.current || !pageOriginalHeightRef.current) return;
@@ -94,8 +114,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
     // Sync PDF theme with app theme
     useEffect(() => {
-        if (isDarkMode && pdfTheme === 'light') setPdfTheme('dark');
-        else if (!isDarkMode && pdfTheme === 'dark') setPdfTheme('light');
+        if (isDarkMode && pdfTheme === 'light') setPdfTheme('sepia');
+        else if (!isDarkMode && pdfTheme === 'sepia') setPdfTheme('light');
     }, [isDarkMode]);
 
     useEffect(() => {
@@ -184,8 +204,20 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
     const onDocumentLoadSuccess = async (pdf: any) => {
         setNumPages(pdf.numPages);
-        setPageNumber(1);
-        setInputPage('1');
+
+        // Check if we should resume from previous session
+        const stored = localStorage.getItem('pdf_history');
+        if (stored) {
+            const history = JSON.parse(stored);
+            const entry = history.find((h: any) => h.url === url);
+            if (entry && entry.lastPage > 1 && entry.lastPage <= pdf.numPages) {
+                setPageNumber(entry.lastPage);
+                setInputPage(entry.lastPage.toString());
+                if (viewMode === 'scroll') setTimeout(() => scrollToPage(entry.lastPage), 500);
+                //scroll sidebar to 
+            }
+        }
+
         if (scaleMode !== 'manual') setTimeout(calculateAutoScale, 500);
 
         // Extract text from all pages asynchronously to avoid blocking UI
@@ -199,7 +231,6 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                 texts[i - 1] = pageText.toLowerCase();
             }
             if (end < pdf.numPages) {
-                // Schedule next chunk
                 setTimeout(() => extractText(end + 1), 50);
             } else {
                 setPagesText([...texts]);
@@ -274,9 +305,75 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         setTimeout(highlight, viewMode === 'paginated' ? 200 : 500);
     }, [searchTerm, viewMode]);
 
+    // Track history and last page
+    useEffect(() => {
+        if (!url || !numPages) return;
+        const saveHistory = () => {
+            const stored = localStorage.getItem('pdf_history');
+            let history = stored ? JSON.parse(stored) : [];
+
+            const existingIndex = history.findIndex((item: any) => item.url === url);
+
+            // Get file name: use existing name, or generate from URL
+            const fileName = existingIndex > -1
+                ? history[existingIndex].name
+                : (url.split('/').pop()?.split('?')[0] || 'Tài liệu không tên');
+
+            // Check if there's a pending localStorageId from a recent upload
+            const pendingId = sessionStorage.getItem('pending_localStorageId');
+            const localStorageId = existingIndex > -1
+                ? history[existingIndex].localStorageId
+                : pendingId || undefined;
+
+            // Clear the pending ID after using it
+            if (pendingId) {
+                sessionStorage.removeItem('pending_localStorageId');
+            }
+
+            const entry = {
+                url,
+                name: fileName,
+                lastPage: pageNumber,
+                numPages,
+                lastViewed: new Date().toISOString(),
+                localStorageId,
+            };
+
+            if (existingIndex > -1) {
+                history[existingIndex] = entry;
+            } else {
+                history.unshift(entry);
+                if (history.length > 20) history.pop();
+            }
+            localStorage.setItem('pdf_history', JSON.stringify(history));
+        };
+
+        const timer = setTimeout(saveHistory, 1000);
+        return () => clearTimeout(timer);
+    }, [pageNumber, url, numPages]);
+
     useEffect(() => {
         if (isSearching && searchTerm && searchTerm.length >= 2) highlightMatches();
     }, [searchTerm, isSearching, highlightMatches, pageNumber, viewMode]);
+
+    const toggleBookmark = (page: number) => {
+        setBookmarks(prev =>
+            prev.includes(page)
+                ? prev.filter(p => p !== page)
+                : [...prev, page].sort((a, b) => a - b)
+        );
+    };
+
+    const handleExtractText = () => {
+        const text = pagesText[pageNumber - 1] || '';
+        if (text) {
+            const md = `### Extracted Text from Page ${pageNumber}\n\n${text}`;
+            setExtractedText(md);
+            setIsExtractModalOpen(true);
+        } else {
+            alert('Đang xử lý văn bản cho trang này, vui lòng đợi giây lát...');
+        }
+    };
 
     return (
         <div className="pdf-viewer-root">
@@ -316,6 +413,9 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                     setRotation={setRotation}
                     setIsToolbarVisible={setIsToolbarVisible}
                     calculateAutoScale={calculateAutoScale}
+                    bookmarks={bookmarks}
+                    onToggleBookmark={toggleBookmark}
+                    onExtractText={handleExtractText}
                 />
             ) : (
                 <button
@@ -343,6 +443,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                             setInputPage={setInputPage}
                             viewMode={viewMode}
                             scrollToPage={scrollToPage}
+                            bookmarks={bookmarks}
                         />
 
                         <PdfContent
@@ -361,6 +462,13 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                 </Document>
             </div>
 
+            <ExtractionModal
+                isOpen={isExtractModalOpen}
+                onClose={() => setIsExtractModalOpen(false)}
+                text={extractedText}
+                pageNumber={pageNumber}
+            />
+
             <style>{`
                 .pdf-page {
                     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
@@ -372,7 +480,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                     ${pdfTheme === 'night' ? 'filter: invert(0.9) hue-rotate(210deg) brightness(0.8);' : ''}
                 }
             `}</style>
-        </div >
+        </div>
     );
 };
 

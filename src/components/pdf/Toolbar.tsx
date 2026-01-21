@@ -2,7 +2,7 @@ import React from 'react';
 import {
     ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw,
     ArrowLeft, Download, Moon, Sun, Search, X, List,
-    Layout, Maximize, ChevronUp, PanelLeft
+    Layout, Maximize, ChevronUp, PanelLeft, Star, FileText
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -40,6 +40,9 @@ interface ToolbarProps {
     setRotation: (val: number | ((r: number) => number)) => void;
     setIsToolbarVisible: (visible: boolean) => void;
     calculateAutoScale: () => void;
+    bookmarks: number[];
+    onToggleBookmark: (page: number) => void;
+    onExtractText: () => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -49,12 +52,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
     viewMode, setViewMode, pagesToShow, setPagesToShow,
     scale, setScale, scaleMode, setScaleMode,
     pdfTheme, setPdfTheme, isDarkMode, toggleTheme,
-    setRotation, setIsToolbarVisible, calculateAutoScale
+    setRotation, setIsToolbarVisible, calculateAutoScale,
+    bookmarks, onToggleBookmark, onExtractText
 }) => {
+    const isBookmarked = bookmarks.includes(pageNumber);
     return (
-        <nav className="glass pdf-navbar" style={{ margin: '1rem', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
+        <nav className="glass pdf-navbar" style={{ margin: '0.75rem', padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <button onClick={() => setShowSidebar(!showSidebar)} className={`btn-secondary ${showSidebar ? 'active' : ''}`} style={{ padding: '6px' }} title="Bật/Tắt thanh bên">
+                <button onClick={() => setShowSidebar(!showSidebar)} className={`btn-secondary ${showSidebar ? 'active' : ''}`} style={{ padding: '4px' }} title="Bật/Tắt thanh bên">
                     <PanelLeft size={20} />
                 </button>
                 <div style={{ width: '1px', height: '24px', background: 'var(--glass-border)' }}></div>
@@ -85,7 +90,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                             <input
                                 autoFocus
                                 className="input-field search-input"
-                                style={{ width: '150px', height: '32px', padding: '4px 12px', fontSize: '0.9rem' }}
+                                style={{ width: '150px', height: '28px', padding: '2px 8px', fontSize: '0.9rem' }}
                                 placeholder="Tìm cụm từ..."
                                 value={searchTerm}
                                 onChange={handleSearch}
@@ -106,8 +111,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 </div>
 
                 {/* Paging Controls */}
-                <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '4px 8px' }}>
-                    <button onClick={() => changePage(-pagesToShow)} disabled={pageNumber <= 1} className="btn-secondary" style={{ padding: '6px' }} title="Trang trước"><ChevronLeft size={20} /></button>
+                <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '2px 6px' }}>
+                    <button onClick={() => changePage(-pagesToShow)} disabled={pageNumber <= 1} className="btn-secondary" style={{ padding: '4px' }} title="Trang trước"><ChevronLeft size={20} /></button>
 
                     <form onSubmit={handleGoToPage} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <input
@@ -121,6 +126,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     </form>
 
                     <button onClick={() => changePage(pagesToShow)} disabled={pageNumber >= (numPages || 0)} className="btn-secondary" style={{ padding: '6px' }} title="Trang sau"><ChevronRight size={20} /></button>
+
+                    <button
+                        onClick={() => onToggleBookmark(pageNumber)}
+                        className={`btn-secondary ${isBookmarked ? 'active' : ''}`}
+                        style={{ padding: '6px', color: isBookmarked ? '#eab308' : 'inherit' }}
+                        title={isBookmarked ? "Bỏ đánh dấu trang này" : "Đánh dấu trang này"}
+                    >
+                        <Star size={20} fill={isBookmarked ? "#eab308" : "none"} />
+                    </button>
                 </div>
 
                 {/* Mode Controls */}
@@ -128,7 +142,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     <button
                         onClick={() => setViewMode(viewMode === 'paginated' ? 'scroll' : 'paginated')}
                         className="btn-secondary"
-                        style={{ padding: '6px' }}
+                        style={{ padding: '4px' }}
                         title={viewMode === 'paginated' ? "Chế độ cuộn dọc" : "Chế độ chuyển trang"}
                     >
                         {viewMode === 'paginated' ? <List size={20} /> : <Layout size={20} />}
@@ -150,8 +164,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 </div>
 
                 {/* Zoom Controls */}
-                <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '4px 8px' }}>
-                    <button onClick={() => { setScale(s => Math.max(0.5, s - 0.1)); setScaleMode('manual'); }} className="btn-secondary" style={{ padding: '6px' }} title="Thu nhỏ"><ZoomOut size={18} /></button>
+                <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '2px 6px' }}>
+                    <button onClick={() => { setScale(s => Math.max(0.5, s - 0.1)); setScaleMode('manual'); }} className="btn-secondary" style={{ padding: '4px' }} title="Thu nhỏ"><ZoomOut size={18} /></button>
                     <span style={{ minWidth: '45px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600 }}>
                         {isNaN(scale) || !isFinite(scale) ? '100' : Math.round(scale * 100)}%
                     </span>
