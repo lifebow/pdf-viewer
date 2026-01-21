@@ -7,7 +7,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import Toolbar from './pdf/Toolbar';
 import Sidebar from './pdf/Sidebar';
 import PdfContent from './pdf/PdfContent';
-import ExtractionModal from './pdf/ExtractionModal';
+// import ExtractionModal from './pdf/ExtractionModal';
 
 // Set worker URL for pdf.js
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -62,8 +62,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [searchResults, setSearchResults] = useState<number[]>([]);
     const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
 
-    const [isExtractModalOpen, setIsExtractModalOpen] = useState(false);
-    const [extractedText, setExtractedText] = useState('');
+    // const [isExtractModalOpen, setIsExtractModalOpen] = useState(false);
 
     const containerRef = React.useRef<HTMLDivElement>(null);
     const pageOriginalWidthRef = React.useRef<number | null>(null);
@@ -364,16 +363,6 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         );
     };
 
-    const handleExtractText = () => {
-        const text = pagesText[pageNumber - 1] || '';
-        if (text) {
-            const md = `### Extracted Text from Page ${pageNumber}\n\n${text}`;
-            setExtractedText(md);
-            setIsExtractModalOpen(true);
-        } else {
-            alert('Đang xử lý văn bản cho trang này, vui lòng đợi giây lát...');
-        }
-    };
 
     return (
         <div className="pdf-viewer-root">
@@ -415,7 +404,6 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                     calculateAutoScale={calculateAutoScale}
                     bookmarks={bookmarks}
                     onToggleBookmark={toggleBookmark}
-                    onExtractText={handleExtractText}
                 />
             ) : (
                 <button
@@ -462,12 +450,12 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                 </Document>
             </div>
 
-            <ExtractionModal
+            {/* <ExtractionModal
                 isOpen={isExtractModalOpen}
                 onClose={() => setIsExtractModalOpen(false)}
                 text={extractedText}
                 pageNumber={pageNumber}
-            />
+            /> */}
 
             <style>{`
                 .pdf-page {

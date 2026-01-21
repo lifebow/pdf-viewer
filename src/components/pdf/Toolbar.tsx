@@ -2,7 +2,7 @@ import React from 'react';
 import {
     ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw,
     ArrowLeft, Download, Moon, Sun, Search, X, List,
-    Layout, Maximize, ChevronUp, PanelLeft, Star, FileText
+    Layout, Maximize, ChevronUp, PanelLeft, Star
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -42,7 +42,6 @@ interface ToolbarProps {
     calculateAutoScale: () => void;
     bookmarks: number[];
     onToggleBookmark: (page: number) => void;
-    onExtractText: () => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -53,7 +52,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     scale, setScale, scaleMode, setScaleMode,
     pdfTheme, setPdfTheme, isDarkMode, toggleTheme,
     setRotation, setIsToolbarVisible, calculateAutoScale,
-    bookmarks, onToggleBookmark, onExtractText
+    bookmarks, onToggleBookmark
 }) => {
     const isBookmarked = bookmarks.includes(pageNumber);
     return (
