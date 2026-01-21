@@ -5,7 +5,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
 import Toolbar from './pdf/Toolbar';
-import Sidebar from './pdf/Sidebar';
+import Sidebar, { type SidebarHandle } from './pdf/Sidebar';
 import PdfContent from './pdf/PdfContent';
 // import ExtractionModal from './pdf/ExtractionModal';
 
@@ -61,9 +61,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const [pagesText, setPagesText] = useState<string[]>([]);
     const [searchResults, setSearchResults] = useState<number[]>([]);
     const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
-
-    // const [isExtractModalOpen, setIsExtractModalOpen] = useState(false);
-
+    const sidebarRef = React.useRef<SidebarHandle>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
     const pageOriginalWidthRef = React.useRef<number | null>(null);
     const pageOriginalHeightRef = React.useRef<number | null>(null);
@@ -140,6 +138,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
             const next = Math.min(Math.max(1, prev + offset), numPages || 1);
             setInputPage(next.toString());
             if (viewMode === 'scroll') scrollToPage(next);
+            setTimeout(() => sidebarRef.current?.scrollToActive(true), 100);
             return next;
         });
     }, [numPages, viewMode, scrollToPage]);
@@ -150,6 +149,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         if (!isNaN(page) && page >= 1 && page <= (numPages || 1)) {
             setPageNumber(page);
             if (viewMode === 'scroll') scrollToPage(page);
+            setTimeout(() => sidebarRef.current?.scrollToActive(true), 100);
         } else {
             setInputPage(pageNumber.toString());
         }
@@ -177,6 +177,9 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
             if (currentPage !== pageNumber) {
                 setPageNumber(currentPage);
                 setInputPage(currentPage.toString());
+                // Use a slight throttle/debounce for scroll sync to avoid performance issues
+                const timer = setTimeout(() => sidebarRef.current?.scrollToActive(true), 150);
+                return () => clearTimeout(timer);
             }
         };
 
@@ -213,7 +216,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                 setPageNumber(entry.lastPage);
                 setInputPage(entry.lastPage.toString());
                 if (viewMode === 'scroll') setTimeout(() => scrollToPage(entry.lastPage), 500);
-                //scroll sidebar to 
+                // Instant scroll for resumed session
+                setTimeout(() => sidebarRef.current?.scrollToActive(false), 600);
             }
         }
 
@@ -264,6 +268,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
             setPageNumber(results[0]);
             setInputPage(results[0].toString());
             if (viewMode === 'scroll') scrollToPage(results[0]);
+            setTimeout(() => sidebarRef.current?.scrollToActive(true), 100);
         } else {
             setCurrentMatchIndex(-1);
         }
@@ -278,6 +283,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                 setPageNumber(nextPage);
                 setInputPage(nextPage.toString());
                 if (viewMode === 'scroll') scrollToPage(nextPage);
+                setTimeout(() => sidebarRef.current?.scrollToActive(true), 100);
                 return nextIndex;
             });
             return prev;
@@ -424,6 +430,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                 >
                     <div style={{ display: 'flex', height: '100%', width: '100%' }}>
                         <Sidebar
+                            ref={sidebarRef}
                             showSidebar={showSidebar}
                             numPages={numPages}
                             pageNumber={pageNumber}

@@ -13,7 +13,11 @@ interface SidebarProps {
     bookmarks: number[];
 }
 
-const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(({
+export interface SidebarHandle {
+    scrollToActive: (smooth?: boolean) => void;
+}
+
+const Sidebar = React.forwardRef<SidebarHandle, SidebarProps>(({
     showSidebar,
     numPages,
     pageNumber,
@@ -23,8 +27,27 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(({
     scrollToPage,
     bookmarks
 }, ref) => {
+    const sidebarRef = React.useRef<HTMLDivElement>(null);
+
+    React.useImperativeHandle(ref, () => ({
+        scrollToActive: (smooth = true) => {
+            if (sidebarRef.current) {
+                const activeItem = sidebarRef.current.querySelector('.thumbnail-item.active');
+                if (activeItem) {
+                    activeItem.scrollIntoView({
+                        behavior: smooth ? 'smooth' : 'auto',
+                        block: 'nearest'
+                    });
+                }
+            }
+        }
+    }));
+
     return (
-        <div ref={ref} className={`sidebar-thumbnails ${showSidebar ? 'open' : 'closed'}`}>
+        <div
+            ref={sidebarRef}
+            className={`sidebar-thumbnails ${showSidebar ? 'open' : 'closed'}`}
+        >
             {Array.from({ length: numPages || 0 }).map((_, i) => (
                 <div
                     key={`thump-${i + 1}`}
