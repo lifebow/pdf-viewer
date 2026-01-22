@@ -31,6 +31,7 @@ function App() {
   const [activeBlobUrls, setActiveBlobUrls] = useState<Map<string, string>>(new Map()); // localStorageId -> blobUrl
   const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
   const [isStorageLocked, setIsStorageLocked] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('pdf_history');
@@ -119,8 +120,7 @@ function App() {
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processFile = async (file: File) => {
     if (file && file.type === 'application/pdf') {
       // 1. Check for duplicates (Simple heuristic: name + size)
       const existingFile = storageStats?.files.find(f => f.name === file.name && f.size === file.size);
@@ -161,7 +161,38 @@ function App() {
         const objectUrl = URL.createObjectURL(file);
         setViewUrl(objectUrl);
       }
+    } else {
+      alert("Vui lòng chỉ chọn hoặc kéo thả file PDF.");
     }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await processFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set to false if we're actually leaving the window
+    if (e.relatedTarget === null) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) await processFile(file);
   };
 
   const isBlobUrl = (url: string) => url.startsWith('blob:');
@@ -310,7 +341,23 @@ function App() {
   }
 
   return (
-    <div className="app-landing-container">
+    <div
+      className={`app-landing-container ${isDragging ? 'is-dragging' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="drop-overlay">
+          <div className="drop-content">
+            <div className="drop-icon-wrapper">
+              <FileText size={64} />
+            </div>
+            <h2>Thả file để đọc ngay</h2>
+            <p>Hỗ trợ tất cả các file PDF</p>
+          </div>
+        </div>
+      )}
       <nav className="landing-nav">
         <div className="nav-brand">
           <img src="/logo.svg" alt="Logo" className="brand-icon" style={{ height: '28px', width: '28px', objectFit: 'contain' }} />

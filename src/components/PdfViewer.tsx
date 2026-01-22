@@ -23,23 +23,12 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
     const getProxiedUrl = (originalUrl: string) => {
         if (!originalUrl.startsWith('http')) return originalUrl;
         if (originalUrl.startsWith('blob:')) return originalUrl;
-
-        let targetUrl = originalUrl;
-
-        // Handle Google Drive links
-        if (originalUrl.includes('drive.google.com')) {
-            const driveIdMatch = originalUrl.match(/\/file\/d\/([^\/]+)/) || originalUrl.match(/[?&]id=([^&]+)/);
-            if (driveIdMatch && driveIdMatch[1]) {
-                targetUrl = `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}`;
-            }
-        }
-
         try {
-            const urlObj = new URL(targetUrl);
-            if (urlObj.hostname === window.location.hostname) return targetUrl;
-            return `https://steep-union-ca07.artmoney306.workers.dev/?url=${encodeURIComponent(targetUrl)}`;
+            const urlObj = new URL(originalUrl);
+            if (urlObj.hostname === window.location.hostname) return originalUrl;
+            return `https://steep-union-ca07.artmoney306.workers.dev/?url=${encodeURIComponent(originalUrl)}`;
         } catch (e) {
-            return targetUrl;
+            return originalUrl;
         }
     };
 
