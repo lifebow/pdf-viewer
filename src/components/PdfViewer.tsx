@@ -160,23 +160,26 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
         if (!container || viewMode !== 'scroll') return;
 
         const handleScroll = () => {
+            const containerCenter = container.getBoundingClientRect().top + container.clientHeight / 2;
             const pages = container.querySelectorAll('.pdf-page-wrapper');
-            let currentPage = 1;
-            let minDistance = Infinity;
+            let bestPage = 1;
+            let minDistanceToCenter = Infinity;
 
             pages.forEach((page) => {
                 const rect = page.getBoundingClientRect();
-                const distance = Math.abs(rect.top);
-                if (distance < minDistance) {
-                    minDistance = distance;
+                const pageCenter = rect.top + rect.height / 2;
+                const distanceToCenter = Math.abs(containerCenter - pageCenter);
+
+                if (distanceToCenter < minDistanceToCenter) {
+                    minDistanceToCenter = distanceToCenter;
                     const p = page.getAttribute('data-page-number');
-                    if (p) currentPage = parseInt(p);
+                    if (p) bestPage = parseInt(p);
                 }
             });
 
-            if (currentPage !== pageNumber) {
-                setPageNumber(currentPage);
-                setInputPage(currentPage.toString());
+            if (bestPage !== pageNumber) {
+                setPageNumber(bestPage);
+                setInputPage(bestPage.toString());
                 // Use a slight throttle/debounce for scroll sync to avoid performance issues
                 const timer = setTimeout(() => sidebarRef.current?.scrollToActive(true), 150);
                 return () => clearTimeout(timer);
@@ -473,6 +476,25 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                     ${pdfTheme === 'dark' ? 'filter: invert(1) hue-rotate(180deg);' : ''}
                     ${pdfTheme === 'sepia' ? 'filter: sepia(0.8) brightness(0.9) contrast(1.1);' : ''}
                     ${pdfTheme === 'night' ? 'filter: invert(0.9) hue-rotate(210deg) brightness(0.8);' : ''}
+                }
+
+                /* PDF Text Layer Fixes */
+                .react-pdf__Page__textContent {
+                    pointer-events: auto !important; /* Keep active to maintain selection context in whitespace */
+                    user-select: text !important;
+                    mix-blend-mode: multiply;
+                }
+
+                .react-pdf__Page__textContent span {
+                    pointer-events: auto !important; /* Re-enable for spans only */
+                    color: transparent !important;
+                    cursor: text;
+                    line-height: 1 !important; /* Minimize vertical bleed */
+                    height: auto !important;
+                }
+
+                .react-pdf__Page__textContent span::selection {
+                    background: rgba(73, 145, 226, 0.4) !important;
                 }
             `}</style>
         </div>

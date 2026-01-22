@@ -702,6 +702,12 @@ html.dark .history-card {
   color: var(--text-main);
 }
 
+.pdf-navbar {
+  user-select: none !important;
+  background: var(--glass-bg);
+  color: var(--text-main);
+}
+
 .icon-btn.danger:hover {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.1);

@@ -63,7 +63,11 @@ const PdfContent: React.FC<PdfContentProps> = ({
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center' }}>
                     {Array.from({ length: numPages || 0 }).map((_, i) => (
-                        <div key={i + 1} data-page-number={i + 1} className="pdf-page-wrapper">
+                        <div
+                            key={i + 1}
+                            data-page-number={i + 1}
+                            className={`pdf-page-wrapper ${pageNumber === i + 1 ? 'active' : ''}`}
+                        >
                             <Page
                                 pageNumber={i + 1}
                                 scale={scale}
