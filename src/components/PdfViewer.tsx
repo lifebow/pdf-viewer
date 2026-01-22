@@ -14,12 +14,13 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 interface PdfViewerProps {
     url: string;
+    localStorageId?: string;
     onBack: () => void;
     isDarkMode: boolean;
     toggleTheme: () => void;
 }
 
-const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTheme }) => {
+const PdfViewer: React.FC<PdfViewerProps> = ({ url, localStorageId: initialLocalStorageId, onBack, isDarkMode, toggleTheme }) => {
     const getProxiedUrl = (originalUrl: string) => {
         if (!originalUrl.startsWith('http')) return originalUrl;
         if (originalUrl.startsWith('blob:')) return originalUrl;
@@ -320,21 +321,28 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
             const stored = localStorage.getItem('pdf_history');
             let history = stored ? JSON.parse(stored) : [];
 
-            const existingIndex = history.findIndex((item: any) => item.url === url);
+            // Xác định localStorageId: ưu tiên từ props, sau đó đến sessionStorage
+            const pendingId = sessionStorage.getItem('pending_localStorageId');
+            const currentLocalStorageId = initialLocalStorageId || pendingId || undefined;
 
-            // Get file name: use existing name, or generate from URL
+            // Tìm kiếm bản ghi cũ: ưu tiên tìm theo localStorageId nếu có
+            let existingIndex = -1;
+            if (currentLocalStorageId) {
+                existingIndex = history.findIndex((item: any) => item.localStorageId === currentLocalStorageId);
+            }
+            
+            // Nếu không thấy theo ID (hoặc không có ID), tìm theo URL
+            if (existingIndex === -1) {
+                existingIndex = history.findIndex((item: any) => item.url === url);
+            }
+
+            // Lấy tên tệp
             const fileName = existingIndex > -1
                 ? history[existingIndex].name
                 : (url.split('/').pop()?.split('?')[0] || 'Tài liệu không tên');
 
-            // Check if there's a pending localStorageId from a recent upload
-            const pendingId = sessionStorage.getItem('pending_localStorageId');
-            const localStorageId = existingIndex > -1
-                ? history[existingIndex].localStorageId
-                : pendingId || undefined;
-
-            // Clear the pending ID after using it
-            if (pendingId) {
+            // Xóa pending ID nếu nó trùng với ID hiện tại
+            if (pendingId && pendingId === currentLocalStorageId) {
                 sessionStorage.removeItem('pending_localStorageId');
             }
 
@@ -344,10 +352,12 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
                 lastPage: pageNumber,
                 numPages,
                 lastViewed: new Date().toISOString(),
-                localStorageId,
+                localStorageId: currentLocalStorageId,
             };
 
             if (existingIndex > -1) {
+                // Cập nhật bản ghi cũ và đưa lên đầu nếu cần (hoặc giữ nguyên vị trí)
+                // Ở đây tôi chọn cập nhật tại chỗ để tránh nhảy vị trí liên tục khi đang đọc
                 history[existingIndex] = entry;
             } else {
                 history.unshift(entry);
@@ -358,7 +368,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, onBack, isDarkMode, toggleTh
 
         const timer = setTimeout(saveHistory, 1000);
         return () => clearTimeout(timer);
-    }, [pageNumber, url, numPages]);
+    }, [pageNumber, url, numPages, initialLocalStorageId]);
 
     useEffect(() => {
         if (isSearching && searchTerm && searchTerm.length >= 2) highlightMatches();

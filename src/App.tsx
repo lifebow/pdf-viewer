@@ -17,6 +17,7 @@ interface HistoryItem {
 function App() {
   const [url, setUrl] = useState('');
   const [viewUrl, setViewUrl] = useState<string | null>(null);
+  const [viewLocalStorageId, setViewLocalStorageId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme');
@@ -44,6 +45,9 @@ function App() {
   useEffect(() => {
     const init = async () => {
       const stored = localStorage.getItem('pdf_history');
+      const lastViewedId = sessionStorage.getItem('last_viewed_id');
+      const lastViewedUrl = sessionStorage.getItem('last_viewed_url');
+      
       if (stored) {
         const parsedHistory: HistoryItem[] = JSON.parse(stored);
         const newBlobUrls = new Map<string, string>();
@@ -55,6 +59,12 @@ function App() {
               if (pdf) {
                 const blobUrl = URL.createObjectURL(pdf.blob);
                 newBlobUrls.set(item.localStorageId, blobUrl);
+                
+                // Nếu đây là tệp đang xem trước khi reload, hãy khôi phục nó
+                if (lastViewedId === item.localStorageId) {
+                  setViewUrl(blobUrl);
+                  setViewLocalStorageId(item.localStorageId);
+                }
               }
             } catch (e) {
               console.error('Failed to restore PDF:', e);
@@ -63,6 +73,12 @@ function App() {
         }
 
         setActiveBlobUrls(newBlobUrls);
+      }
+
+      // Khôi phục URL từ xa nếu không có tệp local nào đang được mở
+      if (!lastViewedId && lastViewedUrl) {
+        setViewUrl(lastViewedUrl);
+        setViewLocalStorageId(null);
       }
 
       // Load storage stats & Cleanup orphans
@@ -117,6 +133,9 @@ function App() {
     e.preventDefault();
     if (url.trim()) {
       setViewUrl(url);
+      setViewLocalStorageId(null);
+      sessionStorage.setItem('last_viewed_url', url);
+      sessionStorage.removeItem('last_viewed_id');
     }
   };
 
@@ -132,6 +151,8 @@ function App() {
           const objectUrl = URL.createObjectURL(pdf.blob);
           setActiveBlobUrls(prev => new Map(prev).set(existingFile.id, objectUrl));
           setViewUrl(objectUrl);
+          setViewLocalStorageId(existingFile.id);
+          sessionStorage.setItem('last_viewed_id', existingFile.id);
           sessionStorage.setItem('pending_localStorageId', existingFile.id);
           return;
         }
@@ -148,6 +169,8 @@ function App() {
 
         setActiveBlobUrls(prev => new Map(prev).set(localStorageId, objectUrl));
         setViewUrl(objectUrl);
+        setViewLocalStorageId(localStorageId);
+        sessionStorage.setItem('last_viewed_id', localStorageId);
 
         // Update storage stats
         const stats = await getStorageStats();
@@ -160,6 +183,7 @@ function App() {
         // Fallback to just using blob URL
         const objectUrl = URL.createObjectURL(file);
         setViewUrl(objectUrl);
+        setViewLocalStorageId(null);
       }
     } else {
       alert("Vui lòng chỉ chọn hoặc kéo thả file PDF.");
@@ -206,6 +230,8 @@ function App() {
       if (blobUrl) {
         setUrl(blobUrl);
         setViewUrl(blobUrl);
+        setViewLocalStorageId(item.localStorageId);
+        sessionStorage.setItem('last_viewed_id', item.localStorageId);
         return;
       } else {
         alert("Không thể mở file. Có thể file đã bị xóa. Vui lòng tải lại.");
@@ -221,6 +247,9 @@ function App() {
 
     setUrl(item.url);
     setViewUrl(item.url);
+    setViewLocalStorageId(null);
+    sessionStorage.setItem('last_viewed_url', item.url);
+    sessionStorage.removeItem('last_viewed_id');
   };
 
   const handleDeleteHistory = async (e: React.MouseEvent, item: HistoryItem) => {
@@ -334,10 +363,20 @@ function App() {
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   if (viewUrl) {
-    return <PdfViewer key={viewUrl} url={viewUrl} onBack={() => {
-      // Don't revoke blob URLs here - keep them valid for re-opening within the session
-      setViewUrl(null);
-    }} isDarkMode={isDarkMode} toggleTheme={toggleTheme} />;
+    return <PdfViewer 
+      key={viewUrl} 
+      url={viewUrl} 
+      localStorageId={viewLocalStorageId || undefined}
+      onBack={() => {
+        // Don't revoke blob URLs here - keep them valid for re-opening within the session
+        setViewUrl(null);
+        setViewLocalStorageId(null);
+        sessionStorage.removeItem('last_viewed_id');
+        sessionStorage.removeItem('last_viewed_url');
+      }} 
+      isDarkMode={isDarkMode} 
+      toggleTheme={toggleTheme} 
+    />;
   }
 
   return (
