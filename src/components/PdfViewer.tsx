@@ -38,7 +38,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, localStorageId: initialLocal
     // PDF State
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
-    const [scale, setScale] = useState(1.0);
+    const [scale, setScale] = useState(1.2);
     const [rotation, setRotation] = useState(0);
     const [pagesToShow, setPagesToShow] = useState(1);
     const [inputPage, setInputPage] = useState('1');
