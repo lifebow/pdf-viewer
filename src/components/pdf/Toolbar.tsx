@@ -183,8 +183,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         className={`btn-secondary ${scaleMode !== 'manual' ? 'active' : ''}`}
                         style={{
                             padding: '6px',
-                            color: scaleMode !== 'manual' ? '#3b82f6' : 'inherit',
-                            background: scaleMode !== 'manual' ? 'rgba(59, 130, 246, 0.1)' : 'transparent'
+                            color: scaleMode !== 'manual' ? '#f97316' : 'inherit',
+                            background: scaleMode !== 'manual' ? 'rgba(249, 115, 22, 0.1)' : 'transparent'
                         }}
                         title={
                             scaleMode === 'fit-width' ? "Chuyển sang Vừa trang" :
