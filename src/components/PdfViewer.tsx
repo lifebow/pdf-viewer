@@ -504,7 +504,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, localStorageId: initialLocal
                 }
 
                 .react-pdf__Page__textContent span::selection {
-                    background: rgba(73, 145, 226, 0.4) !important;
+                    background: rgba(249, 115, 22, 0.4) !important;
                 }
             `}</style>
         </div>

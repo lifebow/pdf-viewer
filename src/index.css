@@ -328,7 +328,7 @@ body {
 
 .thumbnail-item.active .thumbnail-wrapper {
   border-color: var(--primary);
-  box-shadow: 0 0 12px rgba(73, 145, 226, 0.3);
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.3);
 }
 
 .thumbnail-page-number {
@@ -363,12 +363,12 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(circle at 15% 50%, rgba(73, 145, 226, 0.08), transparent 25%),
+  background: radial-gradient(circle at 15% 50%, rgba(249, 115, 22, 0.08), transparent 25%),
     radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%);
 }
 
 body.dark .app-landing-container {
-  background: radial-gradient(circle at 15% 50%, rgba(73, 145, 226, 0.1), transparent 25%),
+  background: radial-gradient(circle at 15% 50%, rgba(249, 115, 22, 0.1), transparent 25%),
     radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.1), transparent 25%);
 }
 
@@ -506,7 +506,7 @@ html.dark .modern-input {
 .modern-input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(73, 145, 226, 0.15);
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.15);
 }
 
 .input-group .input-icon {
@@ -540,7 +540,7 @@ html.dark .modern-input {
 
 .large-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px -5px rgba(73, 145, 226, 0.3);
+  box-shadow: 0 10px 20px -5px rgba(249, 115, 22, 0.3);
 }
 
 .btn-outline {
@@ -624,7 +624,7 @@ html.dark .history-card {
 
 .card-icon {
   padding: 8px;
-  background: rgba(73, 145, 226, 0.1);
+  background: rgba(249, 115, 22, 0.1);
   color: var(--primary);
   border-radius: 10px;
 }
@@ -1029,7 +1029,7 @@ html.dark .drop-overlay {
 
 .drop-icon-wrapper {
   color: var(--primary);
-  filter: drop-shadow(0 0 10px rgba(73, 145, 226, 0.3));
+  filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.3));
 }
 
 .drop-content h2 {
@@ -1053,7 +1053,7 @@ html.dark .drop-overlay {
 
   50% {
     transform: scale(1.02);
-    box-shadow: 0 25px 60px rgba(73, 145, 226, 0.15);
+    box-shadow: 0 25px 60px rgba(249, 115, 22, 0.15);
   }
 
   100% {
