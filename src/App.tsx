@@ -47,7 +47,20 @@ function App() {
       const stored = localStorage.getItem('pdf_history');
       const lastViewedId = sessionStorage.getItem('last_viewed_id');
       const lastViewedUrl = sessionStorage.getItem('last_viewed_url');
-      
+
+      // Deep-link: open a PDF passed via ?url= in the address bar (e.g. from
+      // an external tool). Takes priority over restoring the previous session.
+      const deepLinkUrl = new URLSearchParams(window.location.search).get('url');
+      if (deepLinkUrl) {
+        setUrl(deepLinkUrl);
+        setViewUrl(deepLinkUrl);
+        setViewLocalStorageId(null);
+        sessionStorage.setItem('last_viewed_url', deepLinkUrl);
+        sessionStorage.removeItem('last_viewed_id');
+        // Drop the query param so a refresh doesn't keep forcing the deep link.
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+
       if (stored) {
         const parsedHistory: HistoryItem[] = JSON.parse(stored);
         const newBlobUrls = new Map<string, string>();
@@ -61,7 +74,7 @@ function App() {
                 newBlobUrls.set(item.localStorageId, blobUrl);
                 
                 // Nếu đây là tệp đang xem trước khi reload, hãy khôi phục nó
-                if (lastViewedId === item.localStorageId) {
+                if (!deepLinkUrl && lastViewedId === item.localStorageId) {
                   setViewUrl(blobUrl);
                   setViewLocalStorageId(item.localStorageId);
                 }
@@ -76,7 +89,7 @@ function App() {
       }
 
       // Khôi phục URL từ xa nếu không có tệp local nào đang được mở
-      if (!lastViewedId && lastViewedUrl) {
+      if (!deepLinkUrl && !lastViewedId && lastViewedUrl) {
         setViewUrl(lastViewedUrl);
         setViewLocalStorageId(null);
       }
