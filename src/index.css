@@ -1075,3 +1075,94 @@ html.dark .drop-overlay {
 .app-landing-container.is-dragging {
   cursor: copy;
 }
+
+/* Link Preview Tooltip */
+/* Annotation layer: ensure internal links are clickable above text layer */
+.react-pdf__Page__annotations {
+  z-index: 5 !important;
+}
+
+.react-pdf__Page__annotations section[data-internal-link] {
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+.react-pdf__Page__annotations section[data-internal-link] a {
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+/* Highlight internal links on hover */
+.react-pdf__Page__annotations section[data-internal-link]:hover {
+  background: rgba(249, 115, 22, 0.15) !important;
+  border-radius: 2px;
+  outline: 2px solid rgba(249, 115, 22, 0.4);
+  outline-offset: 1px;
+}
+
+/* Link Preview Tooltip */
+.link-preview-tooltip {
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  padding: 8px;
+  animation: tooltipFadeIn 0.2s ease;
+  pointer-events: auto;
+  max-width: 280px;
+}
+
+.link-preview-header {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--primary);
+  padding: 4px 10px 2px;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.link-preview-ref-text {
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--text-main);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--glass-border);
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow-y: auto;
+  word-break: break-word;
+}
+
+.link-preview-page {
+  border-radius: 6px;
+  overflow: hidden;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+  line-height: 0;
+}
+
+.link-preview-page:hover {
+  opacity: 1;
+}
+
+.link-preview-page .react-pdf__Page {
+  max-width: 100% !important;
+}
+
+.link-preview-page canvas {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -100%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%) scale(1);
+  }
+}

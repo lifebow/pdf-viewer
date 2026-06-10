@@ -103,12 +103,18 @@ function App() {
         const historyData: HistoryItem[] = currentHistory ? JSON.parse(currentHistory) : [];
 
         // Garbage Collection: Remove files in IndexedDB NOT in history
+        // Safety: Skip GC entirely if history is empty but IndexedDB has files
+        // (prevents accidental wipe when localStorage is cleared/corrupted)
         const historyIds = new Set(historyData.map(item => item.localStorageId).filter(Boolean));
-        for (const file of stats.files) {
-          if (!historyIds.has(file.id)) {
-            console.log(`GC: Removing orphaned file ${file.id} (${file.name})`);
-            await deletePdf(file.id);
+        if (historyIds.size > 0) {
+          for (const file of stats.files) {
+            if (!historyIds.has(file.id)) {
+              console.log(`GC: Removing orphaned file ${file.id} (${file.name})`);
+              await deletePdf(file.id);
+            }
           }
+        } else if (stats.files.length > 0) {
+          console.log('GC: Skipped — history is empty but IndexedDB has files. Possible localStorage corruption.');
         }
 
         // Refresh stats after GC

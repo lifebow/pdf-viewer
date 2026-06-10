@@ -1,7 +1,7 @@
 {
   "name": "pdf-viewer",
   "private": true,
-  "version": "2.0.18",
+  "version": "2.0.21",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -34,5 +34,6 @@
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"
   },
-  "homepage": "https://pdf.lifebow.net"
+  "homepage": "https://pdf.lifebow.net",
+  "packageManager": "pnpm@11.5.2+sha512.71c631e382066efc25625d5cf029075de07b61b37f6e27350fbd84b1bda5864c8c1967adc280776b45c30a715c0359a3be08fef42d5bb09e2b99029979692916"
 }

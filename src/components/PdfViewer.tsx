@@ -36,6 +36,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, localStorageId: initialLocal
     const proxiedUrl = getProxiedUrl(url);
 
     // PDF State
+    const [pdfDocument, setPdfDocument] = useState<any>(null);
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1.2);
@@ -209,6 +210,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, localStorageId: initialLocal
     }, [changePage, isSearching, pagesToShow]);
 
     const onDocumentLoadSuccess = async (pdf: any) => {
+        setPdfDocument(pdf);
         setNumPages(pdf.numPages);
 
         // Check if we should resume from previous session
@@ -465,6 +467,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, localStorageId: initialLocal
                             onPageLoadSuccess={onPageLoadSuccess}
                             highlightMatches={highlightMatches}
                             containerRef={containerRef}
+                            pdfDocument={pdfDocument}
                         />
                     </div>
                 </Document>

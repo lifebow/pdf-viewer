@@ -1,5 +1,6 @@
 import React from 'react';
 import { Page } from 'react-pdf';
+import LinkPreviewTooltip from './LinkPreviewTooltip';
 
 interface PdfContentProps {
     viewMode: 'paginated' | 'scroll';
@@ -12,6 +13,7 @@ interface PdfContentProps {
     onPageLoadSuccess: (page: any) => void;
     highlightMatches: () => void;
     containerRef: React.RefObject<HTMLDivElement | null>;
+    pdfDocument: any;
 }
 
 const PdfContent: React.FC<PdfContentProps> = ({
@@ -24,7 +26,8 @@ const PdfContent: React.FC<PdfContentProps> = ({
     searchTerm,
     onPageLoadSuccess,
     highlightMatches,
-    containerRef
+    containerRef,
+    pdfDocument
 }) => {
     return (
         <div
@@ -40,6 +43,11 @@ const PdfContent: React.FC<PdfContentProps> = ({
                 background: 'var(--pdf-bg)'
             }}
         >
+            <LinkPreviewTooltip
+                containerRef={containerRef}
+                numPages={numPages}
+                pdfDocument={pdfDocument}
+            />
             {viewMode === 'paginated' ? (
                 <div style={{ display: 'flex', gap: '2rem', flexWrap: 'nowrap', justifyContent: 'center', alignItems: 'center', minWidth: 'min-content' }}>
                     {Array.from({ length: pagesToShow }).map((_, i) => {
