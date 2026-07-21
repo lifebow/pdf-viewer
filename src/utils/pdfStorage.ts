@@ -13,8 +13,17 @@ interface StoredPdf {
 }
 
 export interface StorageStats {
-    files: Array<{ id: string; name: string; size: number }>;
+    files: Array<{ id: string; name: string; size: number; createdAt: string }>;
     totalSize: number;
+}
+
+export interface HighlightRect { x: number; y: number; w: number; h: number; }
+export interface Highlight {
+    id: string;
+    page: number;
+    color: string;
+    rects: HighlightRect[];
+    text: string;
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -109,6 +118,7 @@ export async function getStorageStats(): Promise<StorageStats> {
                 id: r.id,
                 name: r.name,
                 size: r.size,
+                createdAt: r.createdAt,
             }));
             const totalSize = files.reduce((sum, f) => sum + f.size, 0);
             resolve({ files, totalSize });
@@ -129,8 +139,35 @@ export async function clearAllPdfs(): Promise<void> {
     });
 }
 
+// ── Bookmarks & highlights (localStorage, keyed by localStorageId || url) ──
+
+export function readBookmarks(): Record<string, number[]> {
+    try { return JSON.parse(localStorage.getItem('pdf_bookmarks') || '{}'); } catch { return {}; }
+}
+
+export function writeBookmarksFor(key: string, pages: number[]): void {
+    const all = readBookmarks();
+    all[key] = pages;
+    localStorage.setItem('pdf_bookmarks', JSON.stringify(all));
+}
+
+export function readHighlights(): Record<string, Highlight[]> {
+    try { return JSON.parse(localStorage.getItem('pdf_highlights') || '{}'); } catch { return {}; }
+}
+
+export function writeHighlightsFor(key: string, highlights: Highlight[]): void {
+    const all = readHighlights();
+    all[key] = highlights;
+    localStorage.setItem('pdf_highlights', JSON.stringify(all));
+}
+
 export function formatFileSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function calculateStorageUsagePercentage(bytes: number, quotaBytes: number): number {
+    if (bytes <= 0 || quotaBytes <= 0) return 0;
+    return Math.min(100, Math.max(1, (bytes / quotaBytes) * 100));
 }
